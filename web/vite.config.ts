@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
@@ -31,5 +31,10 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+  },
+  test: {
+    // vendored design-tokens 的测试是 node:test（npm run tokens:test 跑），
+    // 被 vitest 收集只会报 "No test suite found"，必须排除
+    exclude: ['**/node_modules/**', '**/dist/**', 'design-tokens/**'],
   },
 })
