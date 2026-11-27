@@ -78,6 +78,15 @@
       "destructive-foreground": {
         "$type": "color",
         "$value": "#fffcfc"
+      },
+      "caution": {
+        "$type": "color",
+        "$value": "{color.primary.default}",
+        "$description": "警告色随主题：light=primary，dark=同色相提亮档"
+      },
+      "caution-on-primary": {
+        "$type": "color",
+        "$value": "{color.primary.default}"
       }
     },
     "border": {
@@ -129,7 +138,7 @@
       }
     }
   },
-  "$description": "Cream 奶油纸感：Radix Colors v3 amber 全色阶照抄（@radix-ui/colors），彩色纸底 + 深色导航（light）/彩色暗底（dark）；chart-*/状态色不随主题（图表语义优先）。",
+  "$description": "Cream 奶油纸感：Radix Colors v3 amber 全色阶照抄（@radix-ui/colors），彩色纸底 + 深色导航（light）/彩色暗底（dark）；状态色 caution/chart-3 随主题 primary（destructive 保持全局红）。",
   "radius": {
     "base": {
       "$type": "dimension",
