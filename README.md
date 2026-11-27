@@ -19,6 +19,29 @@ fork（Apache-2.0）：前端重写为 Vite + React 19 + Tailwind + shadcn/ui（
 - **Helm**：应用管理 + 一键升级回滚（后端 `--enable-helm`）
 - **全局 ⌘K 搜索**（支持标签语法 `app=web` 直达过滤结果）、资源拓扑图、多集群（含动态集群接入）
 
+## 界面
+
+总览：集群健康、副本就绪度与 15s 采样的 CPU/内存趋势（深浅双主题）：
+
+![总览](docs/screenshots/overview.png)
+
+AI 助手自动携带当前页面上下文，工具调用逐步可查、写操作先出执行计划再审批；
+列表页实时 watch，自带 CPU/内存用量列：
+
+| AI 助手 | Pods 列表 |
+| --- | --- |
+| ![AI 助手](docs/screenshots/ai-chat.png) | ![Pods 列表](docs/screenshots/pods.png) |
+
+集群巡检按规则扫描全集群异常并支持处置/复发跟踪；变更审计统一记录面板与 AI 的每次写操作：
+
+| 集群巡检 | 变更审计 |
+| --- | --- |
+| ![集群巡检](docs/screenshots/inspect.png) | ![变更审计](docs/screenshots/audit.png) |
+
+深色主题：
+
+![深色主题](docs/screenshots/overview-dark.png)
+
 ## 快速开始
 
 ```bash
