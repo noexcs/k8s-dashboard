@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { NamespaceFilter } from '@/components/NamespaceFilter'
 import { ExportButton } from '@/features/resources/ExportButton'
 import { ResourceDataTable } from '@/components/ResourceDataTable'
+import { askAi } from '@/features/ai/askBus'
 import { RESOURCE_MAP, type Col } from '@/resources/registry'
 import { tf, useT } from '@/i18n'
 
@@ -272,6 +273,7 @@ export function PodsListPage() {
             nameHref={podHref}
             getRowClassName={p => ((highlight.current.get(p.metadata.uid) ?? 0) > Date.now() ? 'bg-accent' : undefined)}
             onFilteredCount={setFilteredCount}
+            askRow={p => askAi(tf('ai:askDiagnoseRow', { kind: 'Pod', ns: p.metadata.namespace ?? '-', name: p.metadata.name }))}
           />
         )}
       </div>
