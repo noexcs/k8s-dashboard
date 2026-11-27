@@ -28,13 +28,13 @@ import http from 'node:http'
 import { SessionManager } from '@earendil-works/pi-coding-agent'
 import { UIMessageStreamAdapter } from './lib/adapter.js'
 import { config } from './lib/config.js'
-import { listModels, modelRuntime, refreshLlmRuntime, resolveModel } from './lib/model.js'
+import { listModels, modelRuntime, providerSpecs, refreshLlmRuntime, resolveModel, runtimeBaseUrl } from './lib/model.js'
 import { SessionRegistry, readMeta } from './lib/sessions.js'
 import { toUIMessages } from './lib/ui-message.js'
 import { PERMISSION_MODES, decideApproval, pendingToolCallIds, pendingItems, allowToolForSession, autoAllowedTools, clearAutoAllowForSession } from './lib/permissions.js'
 import { record as auditRecord, list as auditList } from './lib/audit.js'
 import { notify, lastNotify } from './lib/notify.js'
-import { effective, readOverrides, writeOverrides } from './lib/overrides.js'
+import { activeLlm, effective, readOverrides, writeOverrides } from './lib/overrides.js'
 import { save as handoverSave, get as handoverGet, listRecent as handoverListRecent, listAll as handoverListAll, markAcked as handoverMarkAcked } from './lib/handover.js'
 import { listDaily } from './lib/daily.js'
 import { record as dispRecord, listLatest as dispList } from './lib/disposition.js'
@@ -98,12 +98,13 @@ async function readJsonBody(req) {
 /** 面向 UI 的错误文案（SSE error part 用） */
 /** @param {unknown} e @returns {string} */
 function friendlyError(e) {
-  if (!String(effective('llmGatewayBase'))) return 'AI 未配置：请在「设置 → AI 服务」填写模型网关，或注入环境变量 LLM_GATEWAY_BASE'
+  const llm = activeLlm()
+  if (!llm.baseUrl) return 'AI 未配置：请在「设置 → AI 服务」添加模型 Provider，或注入环境变量 LLM_GATEWAY_BASE'
   if (e instanceof HttpError) return e.message
   const msg = e instanceof Error ? e.message : String(e)
-  if (/api key|authentication|auth/i.test(msg)) return `LLM 凭据未配置或失效：${msg}`
+  if (/api key|authentication|auth/i.test(msg)) return `LLM 凭据未配置或失效（${llm.label}）：${msg}`
   if (/fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|timeout/i.test(msg)) {
-    return `LLM 网关（${effective('llmGatewayBase')}）暂不可达，请检查网络后重试。`
+    return `LLM 网关（${llm.label} ${llm.baseUrl}）暂不可达，请检查网络后重试。`
   }
   return `AI 请求失败：${msg}`
 }
@@ -608,7 +609,8 @@ async function handleModels(res) {
  * 不该被要求去命令行看日志 */
 /** @param {import('node:http').ServerResponse} res @returns {Promise<void>} */
 async function handleStatus(res) {
-  const base = { gateway: String(effective('llmGatewayBase')), llmKeySet: !!effective('llmApiKey'), notifyConfigured: !!effective('notifyWebhookUrl'), inspectIntervalMin: Number(effective('inspectIntervalMin')), notifyLast: lastNotify() }
+  const llm = activeLlm()
+  const base = { gateway: llm.baseUrl, gatewayLabel: llm.label, llmKeySet: !!llm.apiKey, notifyConfigured: !!effective('notifyWebhookUrl'), inspectIntervalMin: Number(effective('inspectIntervalMin')), notifyLast: lastNotify() }
   try {
     const models = await listModels()
     sendJson(res, 200, { ok: true, ...base, modelCount: models.length, models: models.slice(0, 20) })
@@ -730,6 +732,7 @@ async function route(req, res) {
   if (req.method === 'GET' && p === '/config') {
     // 生效值 + 来源标记：UI 要能区分「env 底座」与「UI 覆盖」，别让人改了 UI 被 env 盖回来还不知道
     const ov = readOverrides()
+    const llm = activeLlm()
     // env 底座值一并返回：「UI 覆盖」章旁要能看清回到了哪里，否则唯一退路又是命令行
     sendJson(res, 200, {
       inspectIntervalMin: { value: Number(effective('inspectIntervalMin')), overridden: 'inspectIntervalMin' in ov, env: Number(config.inspectIntervalMin) },
@@ -739,7 +742,45 @@ async function route(req, res) {
       llmModel: { value: String(effective('llmModel')), overridden: 'llmModel' in ov, env: String(config.llmModel) },
       // 密钥明文永不下发浏览器：只回「是否已配置」与来源
       llmApiKey: { overridden: 'llmApiKey' in ov, configured: !!effective('llmApiKey'), envConfigured: !!config.llmApiKey },
+      // 多 Provider 视图：密钥只回 hasKey（编辑表单留空=__KEEP__）；active=生效项
+      llmProviders: {
+        items: (Array.isArray(ov.llmProviders) ? ov.llmProviders : []).map((/** @type {any} */ x) => ({
+          id: String(x.id), name: String(x.name), baseUrl: String(x.baseUrl),
+          models: Array.isArray(x.models) ? x.models.map(String) : [], hasKey: !!String(x.apiKey ?? ''),
+        })),
+        activeId: llm.providerId ?? '',
+        activeLabel: llm.label,
+        envConfigured: !!config.llmGatewayBase,
+        envBaseUrl: String(config.llmGatewayBase),
+      },
     })
+    return
+  }
+  if (req.method === 'POST' && p === '/config/test-llm') {
+    // 连接测试：GET {baseUrl}/models（OpenAI 兼容标准端点）。表单态带明文 key；
+    // 已存 provider 传 {id} + apiKey=__KEEP__ 用盘上密钥测
+    const body = await readJsonBody(req)
+    const ov = readOverrides()
+    const list = Array.isArray(ov.llmProviders) ? ov.llmProviders : []
+    const stored = list.find((/** @type {any} */ x) => x && x.id === body.id)
+    const baseUrl = String(body.baseUrl ?? stored?.baseUrl ?? '').trim().replace(/\/+$/, '')
+    if (!/^https?:\/\//.test(baseUrl)) return sendJson(res, 400, { ok: false, error: '网关须为 http(s) 地址' })
+    const apiKey = body.apiKey === '__KEEP__' ? String(stored?.apiKey ?? '') : String(body.apiKey ?? '')
+    const target = runtimeBaseUrl(baseUrl) + '/models'
+    const ctl = new AbortController()
+    const timer = setTimeout(() => ctl.abort(), 8000)
+    try {
+      const r = await fetch(target, { headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {}, signal: ctl.signal })
+      if (!r.ok) return sendJson(res, 200, { ok: false, error: `HTTP ${r.status}（${new URL(target).host}）` })
+      const j = await r.json().catch(() => ({}))
+      const models = Array.isArray(j?.data) ? j.data.map((/** @type {any} */ m) => String(m?.id ?? '')).filter(Boolean).slice(0, 50) : []
+      sendJson(res, 200, { ok: true, models, via: target.includes('host.docker.internal') ? 'host.docker.internal' : 'direct' })
+    } catch (e) {
+      const msg = e instanceof Error && e.name === 'AbortError' ? '8s 超时' : e instanceof Error ? e.message.slice(0, 120) : String(e)
+      sendJson(res, 200, { ok: false, error: `${msg}（${new URL(target).host}）` })
+    } finally {
+      clearTimeout(timer)
+    }
     return
   }
   if (req.method === 'PUT' && p === '/config') {
@@ -754,6 +795,16 @@ async function route(req, res) {
       const fmt = (/** @type {string} */ k, /** @type {any} */ v) => {
         if (v === undefined) return 'env'
         if (k === 'llmApiKey') return v ? '已设置' : '(空)'
+        if (k === 'llmProviders') {
+          // 列表整体记一行摘要：名称+网关 host（key 永不上账）
+          if (!Array.isArray(v)) return '(非法)'
+          if (!v.length) return '(空=回 env)'
+          return v.map((/** @type {any} */ x) => {
+            let host = String(x?.baseUrl ?? '')
+            try { host = new URL(String(x?.baseUrl)).host } catch { /* 保留原串截断 */ }
+            return `${x?.name}@${String(host).slice(0, 40)}`
+          }).join(', ')
+        }
         if (k === 'notifyWebhookUrl' || k === 'panelBaseUrl') {
           // webhook URL 含 token：账上只记 host，不留全文
           try { return v ? new URL(String(v)).host : '(空)' } catch { return '(非法)' }
@@ -761,8 +812,9 @@ async function route(req, res) {
         return String(v)
       }
       for (const k of Object.keys(patch)) {
-        if (!['inspectIntervalMin', 'notifyWebhookUrl', 'panelBaseUrl', 'llmGatewayBase', 'llmApiKey', 'llmModel'].includes(k)) continue
-        if (String(before[k] ?? '') === String(after[k] ?? '')) continue
+        if (!['inspectIntervalMin', 'notifyWebhookUrl', 'panelBaseUrl', 'llmGatewayBase', 'llmApiKey', 'llmModel', 'llmProviders', 'llmActiveProvider'].includes(k)) continue
+        // 列表每次全量 PUT：序列化比较，没实际变化不记账（防「打开-保存」刷审计）
+        if (JSON.stringify(before[k] ?? null) === JSON.stringify(after[k] ?? null)) continue
         auditRecord({
           source: 'ui',
           ...(typeof actor === 'string' && actor ? { actor: actor.slice(0, 60) } : {}),
@@ -772,7 +824,7 @@ async function route(req, res) {
           summary: `${k}: ${fmt(k, before[k])} → ${k in after ? fmt(k, after[k]) : '还原 env'}`,
         })
       }
-      if (['llmGatewayBase', 'llmApiKey', 'llmModel'].some(k => k in patch)) {
+      if (['llmGatewayBase', 'llmApiKey', 'llmModel', 'llmProviders', 'llmActiveProvider'].some(k => k in patch)) {
         // 热重建模型目录+运行时；失败不吞 200（配置已落盘，下次请求自然报错可见）
         await refreshLlmRuntime().catch(() => {})
       }
@@ -836,14 +888,16 @@ async function route(req, res) {
 }
 
 async function main() {
-  if (!effective('llmApiKey')) {
+  const llm = activeLlm()
+  if (!llm.apiKey) {
     log('警告：LLM 密钥未设置（env LLM_API_KEY 或「设置 → AI 服务」），网关要求鉴权时 /chat 将不可用')
   }
   await modelRuntime() // 生成 models.json 并初始化运行时（配置错误快速失败）
   server.listen(config.port, config.host, () => {
     log(
       `listening on http://${config.host}:${config.port}` +
-        ` | data=${config.dataDir} | llm=${effective('llmGatewayBase') || '(未配置)'} (${effective('llmModel')})` +
+        ` | data=${config.dataDir} | llm=${llm.baseUrl ? `${llm.label} ${llm.baseUrl}` : '(未配置)'} (${effective('llmModel')})` +
+        ` | providers=${providerSpecs().length}` +
         ` | backend=${config.backendBase}`,
     )
   })

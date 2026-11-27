@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Check, Info, Pencil, RefreshCw, RotateCcw, Send, X } from 'lucide-react'
+import { Bell, Check, Info, Pencil, Plus, RefreshCw, RotateCcw, Send, X } from 'lucide-react'
 import { tf, useT } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -15,6 +16,7 @@ import { FADE, INSET, SectionCard } from './parts'
 interface AiStatus {
   ok: boolean
   gateway?: string
+  gatewayLabel?: string
   error?: string
   modelCount?: number
   models?: { id: string }[]
@@ -23,11 +25,22 @@ interface AiStatus {
   notifyLast?: { ts: string; ok: boolean; err?: string; text?: string } | null
 }
 
+/** 设置页 provider 视图项（密钥不下发，只有 hasKey） */
+interface ProviderItem {
+  id: string
+  name: string
+  baseUrl: string
+  models: string[]
+  hasKey: boolean
+}
+
 type CfgKey = 'inspectIntervalMin' | 'notifyWebhookUrl' | 'panelBaseUrl' | 'llmGatewayBase' | 'llmModel'
 type CfgRow = { value: string | number; overridden: boolean; env: string | number }
 type AiConfig = Record<CfgKey, CfgRow> & {
   /** 密钥明文永不下发浏览器：只有布尔态 */
   llmApiKey: { overridden: boolean; configured: boolean; envConfigured: boolean }
+  /** 多 Provider：列表+active（密钥仅 hasKey） */
+  llmProviders: { items: ProviderItem[]; activeId: string; activeLabel: string; envConfigured: boolean; envBaseUrl: string }
 }
 
 /** 配置字段/通知通道共用的瓦片容器：实体边框，与设置页其他卡的行同构 */
@@ -179,6 +192,107 @@ export function AIServiceCard() {
     setDraft(initial)
     editBase.current = initial
     setCfgErr(key, '')
+  }
+
+  // ---- 多 Provider：列表全量替换 PUT llmProviders；active/默认模型单独 PUT。
+  // 密钥只写不回显：编辑留空=__KEEP__（服务端合回旧 key），与「显式无密钥」区分开 ----
+  const provs = cfgQ.data?.llmProviders
+  const [provForm, setProvForm] = useState<null | { id?: string; hasKey?: boolean; name: string; baseUrl: string; apiKey: string; models: string }>(null)
+  const [provErr, setProvErr] = useState('')
+  const [provBusy, setProvBusy] = useState(false)
+  // 每 provider 一格测试结果（id→态）：全局单态会把 A 的「可用」串显示在 B 行上
+  const [pTests, setPTests] = useState<Record<string, { state: 'busy' | 'ok' | 'fail'; err?: string; models?: string[] }>>({})
+  const [confirmDel, setConfirmDel] = useState('')
+
+  const putConfig = async (patch: Record<string, unknown>): Promise<string> => {
+    const r = await fetch('/ai/config', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...patch, ...actorPatch() }),
+    })
+    const d = (await r.json()) as { ok?: boolean; error?: string }
+    return d.ok ? '' : (d.error ?? `HTTP ${r.status}`)
+  }
+  const afterProvChange = () => {
+    void cfgQ.refetch()
+    // 列表改动=运行时重建，横幅的模型数/网关必须跟着刷
+    void q.refetch()
+  }
+  const testProvider = async (arg: { id?: string; baseUrl: string; apiKey?: string }, slot: string) => {
+    setPTests(m => ({ ...m, [slot]: { state: 'busy' } }))
+    try {
+      const r = await fetch('/ai/config/test-llm', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ baseUrl: arg.baseUrl, apiKey: arg.apiKey ?? '__KEEP__', ...(arg.id ? { id: arg.id } : {}) }),
+      })
+      const d = (await r.json()) as { ok?: boolean; error?: string; models?: string[] }
+      setPTests(m => ({ ...m, [slot]: d.ok ? { state: 'ok', models: d.models ?? [] } : { state: 'fail', err: d.error ?? '' } }))
+      // 表单态测通：单模型直接填进模型框，多模型给「填入」按钮（防 50 个全灌进来）
+      if (d.ok && provForm && (slot === 'form' || slot === (provForm.id ?? 'new')) && (d.models?.length ?? 0) === 1) {
+        setProvForm(f => (f ? { ...f, models: d.models![0] } : f))
+      }
+    } catch (e) {
+      setPTests(m => ({ ...m, [slot]: { state: 'fail', err: e instanceof Error ? e.message.slice(0, 100) : '' } }))
+    }
+  }
+  const saveProvider = async () => {
+    if (!provForm || provBusy) return
+    const name = provForm.name.trim()
+    const baseUrl = provForm.baseUrl.trim()
+    const models = provForm.models.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+    if (!name || !/^https?:\/\/.+/i.test(baseUrl) || models.length === 0) {
+      setProvErr(t('settings:aiProviderFormIncomplete'))
+      return
+    }
+    setProvBusy(true)
+    setProvErr('')
+    try {
+      const item: Record<string, unknown> = {
+        name,
+        baseUrl,
+        models,
+        // 编辑且留空=保持原密钥；新表单留空=无鉴权网关
+        apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey,
+        ...(provForm.id ? { id: provForm.id } : {}),
+      }
+      const cur = provs?.items ?? []
+      const at = provForm.id ? cur.findIndex(x => x.id === provForm.id) : -1
+      const items = at >= 0 ? [...cur.slice(0, at), item, ...cur.slice(at + 1)] : [...cur, item]
+      const err = await putConfig({ llmProviders: items })
+      if (err) {
+        setProvErr(err)
+        return
+      }
+      setProvForm(null)
+      afterProvChange()
+    } finally {
+      setProvBusy(false)
+    }
+  }
+  const removeProvider = async (id: string) => {
+    if (provBusy) return
+    setProvBusy(true)
+    setConfirmDel('')
+    try {
+      const rest = (provs?.items ?? []).filter(x => x.id !== id)
+      const err = await putConfig({ llmProviders: rest.length ? rest : null })
+      if (err) setProvErr(err)
+      else afterProvChange()
+    } finally {
+      setProvBusy(false)
+    }
+  }
+  const setActiveProvider = async (id: string) => {
+    if (provBusy) return
+    setProvBusy(true)
+    try {
+      const err = await putConfig({ llmActiveProvider: id })
+      if (err) setProvErr(err)
+      else afterProvChange()
+    } finally {
+      setProvBusy(false)
+    }
   }
 
   // ---- 编辑态整瓦片接管：等宽输入框 + 实体保存/取消（Enter=保存）；env 底座行常驻，看得见盖住了谁 ----
@@ -434,6 +548,150 @@ export function AIServiceCard() {
     </div>
   )
 
+  // ---- 多 Provider 区：列表行（默认 radio/测试/编辑/两段删除）+ 内联表单 + env 底座。
+  // env 三瓦片仅在列表为空时保留（单网关老用法）；有 provider 后 env 只显示一行底注 ----
+  const provFormModels = provForm?.models.split(/[,\s]+/).filter(Boolean) ?? []
+  const formTest = pTests[provForm?.id ?? 'new']
+  const providerRow = (p: ProviderItem) => {
+    const active = p.id === provs?.activeId
+    const tst = pTests[p.id]
+    return (
+      <div key={p.id} className={cn(TILE, FADE)}>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              name="ai-active-provider"
+              className="size-3.5 shrink-0 accent-primary"
+              checked={active}
+              disabled={provBusy}
+              onChange={() => void setActiveProvider(p.id)}
+              aria-label={tf('settings:aiProviderActiveAria', { name: p.name })}
+            />
+            <span className="truncate text-[13px] font-medium">{p.name}</span>
+            <Badge variant="secondary" className="shrink-0 tabular-nums">{tf('settings:aiProviderModelsN', { n: p.models.length })}</Badge>
+            <span className={cn('shrink-0 text-xs', !p.hasKey && 'text-muted-foreground')}>{p.hasKey ? t('settings:aiProviderKeySet') : t('settings:aiProviderKeyNone')}</span>
+          </label>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button size="sm" variant="outline" aria-disabled={tst?.state === 'busy' || undefined} onClick={() => { if (tst?.state !== 'busy') void testProvider({ id: p.id, baseUrl: p.baseUrl }, p.id) }}>
+              {tst?.state === 'busy' ? <Spinner /> : tst?.state === 'ok' ? <Check /> : tst?.state === 'fail' ? <X /> : <Send />}
+              {t('settings:aiProviderTest')}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setPTests(m => { const copy = { ...m }; delete copy[p.id]; return copy })
+                setProvErr('')
+                setProvForm({ id: p.id, hasKey: p.hasKey, name: p.name, baseUrl: p.baseUrl, apiKey: '', models: p.models.join(', ') })
+              }}
+            >
+              <Pencil />
+              {t('settings:cfgEdit')}
+            </Button>
+            <Button
+              size="sm"
+              variant={confirmDel === p.id ? 'destructive' : 'outline'}
+              className={cn(confirmDel === p.id && 'min-w-[5.5rem]')}
+              onClick={() => { if (confirmDel === p.id) void removeProvider(p.id); else setConfirmDel(p.id) }}
+            >
+              {confirmDel === p.id ? t('settings:aiProviderDelConfirm') : t('settings:aiProviderDelete')}
+            </Button>
+          </div>
+        </div>
+        <div className="mt-2 truncate font-mono text-xs text-muted-foreground" title={p.baseUrl}>{p.baseUrl}</div>
+        {tst && (
+          <p role="status" className={cn('mt-1.5 break-all text-xs', tst.state === 'fail' ? 'text-destructive' : 'text-muted-foreground')}>
+            {tst.state === 'busy' ? t('settings:aiProviderTestBusy') : tst.state === 'ok' ? tf('settings:aiProviderTestOk', { n: tst.models?.length ?? 0 }) : tst.err}
+          </p>
+        )}
+        {active && (
+          <div className="mt-2 flex items-center gap-2 border-t pt-2">
+            <span className="shrink-0 text-xs text-muted-foreground">{t('settings:aiProviderDefaultModel')}</span>
+            <Select
+              value={String(cfgQ.data?.llmModel.value ?? '')}
+              onValueChange={v => { if (v) void putConfig({ llmModel: v }).then(e => (e ? setProvErr(e) : afterProvChange())) }}
+              disabled={provBusy}
+            >
+              <SelectTrigger size="sm" className="max-w-[16rem] font-mono text-xs" aria-label={t('settings:aiProviderDefaultModel')}>
+                <SelectValue placeholder={t('settings:aiProviderDefaultModel')} />
+              </SelectTrigger>
+              <SelectContent>
+                {p.models.map(m => (
+                  <SelectItem key={m} value={m} className="font-mono text-xs">{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+    )
+  }
+  const providersBlock = (
+    <div className="space-y-2">
+      {(provs?.items ?? []).map(providerRow)}
+      {provForm && (
+        <div key={provForm.id ?? 'new'} className={cn(TILE, FADE, 'ring-2 ring-ring/25')}>
+          <div className="text-[13px] font-medium">{provForm.id ? t('settings:aiProviderEditTitle') : t('settings:aiProviderAdd')}</div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <Input autoFocus aria-label={t('settings:aiProviderName')} placeholder={t('settings:aiProviderName')} value={provForm.name} onChange={e => setProvForm(f => (f ? { ...f, name: e.target.value } : f))} className="font-mono text-[13px]" />
+            <Input aria-label={t('settings:aiProviderUrl')} placeholder="http://host:port/v1" value={provForm.baseUrl} onChange={e => setProvForm(f => (f ? { ...f, baseUrl: e.target.value } : f))} className="font-mono text-[13px]" />
+            <Input type="password" aria-label={t('settings:aiProviderKey')} placeholder={provForm.hasKey ? t('settings:aiProviderKeyKeep') : t('settings:aiProviderKeyPh')} value={provForm.apiKey} onChange={e => setProvForm(f => (f ? { ...f, apiKey: e.target.value } : f))} className="font-mono text-[13px]" />
+            <Input aria-label={t('settings:aiProviderModels')} placeholder={t('settings:aiProviderModels')} value={provForm.models} onChange={e => { setProvForm(f => (f ? { ...f, models: e.target.value } : f)); setPTests(m => { const key = provForm.id ?? 'new'; if (!(key in m)) return m; const copy = { ...m }; delete copy[key]; return copy }) }} className="font-mono text-[13px]" onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void saveProvider() }} />
+          </div>
+          {/* 模型 chips：手动输入常驻，测通后「填入」覆盖（网关目录是真源） */}
+          {provFormModels.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {provFormModels.map(m => (
+                <span key={m} className="rounded-md border bg-background px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{m}</span>
+              ))}
+            </div>
+          )}
+          {formTest?.state === 'ok' && (formTest.models?.length ?? 0) > 0 && (
+            <Button size="sm" variant="outline" className="mt-2" onClick={() => setProvForm(f => (f ? { ...f, models: formTest.models!.join(', ') } : f))}>
+              <RefreshCw />
+              {tf('settings:aiProviderFillModels', { n: formTest.models!.length })}
+            </Button>
+          )}
+          {formTest?.state === 'fail' && <p role="alert" className="mt-2 break-all text-xs text-destructive">{formTest.err}</p>}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button size="sm" aria-disabled={provBusy || undefined} onClick={() => { if (!provBusy) void saveProvider() }}>
+              {provBusy ? <Spinner /> : <Check />}
+              {t('settings:cfgSave')}
+            </Button>
+            <Button size="sm" variant="outline" aria-disabled={formTest?.state === 'busy' || undefined} onClick={() => { if (formTest?.state !== 'busy') void testProvider({ id: provForm.id, baseUrl: provForm.baseUrl, apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey }, provForm.id ?? 'new') }}>
+              {formTest?.state === 'busy' ? <Spinner /> : <Send />}
+              {t('settings:aiProviderTest')}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setProvForm(null); setProvErr('') }}>
+              {t('settings:cfgCancel')}
+            </Button>
+          </div>
+          {provErr && <p role="alert" className="mt-2 break-words text-xs text-destructive">{provErr}</p>}
+        </div>
+      )}
+      {!provForm && (
+        <Button size="sm" variant="outline" onClick={() => { setProvErr(''); setProvForm({ name: '', baseUrl: '', apiKey: '', models: '' }) }}>
+          <Plus />
+          {t('settings:aiProviderAdd')}
+        </Button>
+      )}
+      {/* env 底座：列表接管后三瓦片退为一行底注；空列表时三瓦片维持老单网关用法 */}
+      {(provs?.items.length ?? 0) > 0 ? (
+        <p className="truncate text-xs text-muted-foreground">
+          env LLM_GATEWAY_BASE = {provs?.envConfigured ? <span className="font-mono">{provs.envBaseUrl}</span> : envUnset}
+          {' · '}{t('settings:aiProviderEnvNote')}
+        </p>
+      ) : (
+        <>
+          {field('llmGatewayBase', t('settings:aiGateway'), 'LLM_GATEWAY_BASE', v => (v ? String(v) : t('settings:aiGatewayNone')))}
+          {field('llmModel', t('settings:aiModelName'), 'LLM_MODEL', v => String(v))}
+          {keyField()}
+        </>
+      )}
+    </div>
+  )
+
   // ---- 健康横幅：一眼状态。探活要回答「服务挂了、网关挂了还是没模型」----
   const modelCount = st?.modelCount ?? st?.models?.length ?? 0
   const modelIds = (st?.models ?? []).map(m => m.id)
@@ -462,8 +720,8 @@ export function AIServiceCard() {
                 <span key={String(st?.ok)} className={cn(FADE, 'text-sm font-semibold')}>{st?.ok ? t('settings:aiOk') : t('settings:aiDown')}</span>
               )}
               {st?.ok && st.gateway && (
-                <span className="max-w-[15rem] truncate rounded-md border bg-background px-2 py-0.5 font-mono text-xs text-muted-foreground" title={st.gateway}>
-                  {st.gateway}
+                <span className="max-w-[15rem] truncate rounded-md border bg-background px-2 py-0.5 font-mono text-xs text-muted-foreground" title={st.gatewayLabel ? `${st.gatewayLabel} · ${st.gateway}` : st.gateway}>
+                  {st.gatewayLabel ? `${st.gatewayLabel} · ` : ''}{st.gateway}
                 </span>
               )}
               {q.isPending && <Skeleton className="h-5 w-40" />}
@@ -525,11 +783,7 @@ export function AIServiceCard() {
       >
         <div className="space-y-4">
           {banner}
-          <div className="space-y-2">
-            {field('llmGatewayBase', t('settings:aiGateway'), 'LLM_GATEWAY_BASE', v => (v ? String(v) : t('settings:aiGatewayNone')))}
-            {field('llmModel', t('settings:aiModelName'), 'LLM_MODEL', v => String(v))}
-            {keyField()}
-          </div>
+          {providersBlock}
           <p className="flex items-start gap-1.5 border-t pt-3 text-xs leading-5 text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             {t('settings:aiFixHint')}
