@@ -15,6 +15,7 @@ import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ModelRuntime } from '@earendil-works/pi-coding-agent'
 import { config } from './config.js'
+import { effective } from './overrides.js'
 
 /** @typedef {import('@earendil-works/pi-ai').Model<import('@earendil-works/pi-ai').Api>} PiModel */
 /** @typedef {import('@earendil-works/pi-coding-agent').ModelRuntime} PiModelRuntime */
@@ -30,13 +31,13 @@ export function writeModelsJson() {
     providers: {
       [LLM_PROVIDER]: {
         name: 'K8S vLLM',
-        baseUrl: config.llmGatewayBase,
+        baseUrl: String(effective('llmGatewayBase')),
         api: 'openai-completions',
-        apiKey: config.llmApiKey,
+        apiKey: String(effective('llmApiKey')),
         models: [
           {
-            id: config.llmModel,
-            name: config.llmModel,
+            id: String(effective('llmModel')),
+            name: String(effective('llmModel')),
             // 思考由 samplingParams.reasoning_effort 控制，不声明 reasoning，
             // 避免 pi 按 thinking 级别再叠加参数
             reasoning: false,
@@ -64,16 +65,31 @@ export function writeModelsJson() {
 /** @type {null | Promise<PiModelRuntime>} */
 let runtimePromise = null
 /** @returns {Promise<PiModelRuntime>} */
+function createRuntime() {
+  return ModelRuntime.create({
+    authPath: join(config.agentDir, 'auth.json'),
+    modelsPath: join(config.agentDir, 'models.json'),
+    refreshOnCreate: false,
+  })
+}
+/** @returns {Promise<PiModelRuntime>} */
 export function modelRuntime() {
   if (!runtimePromise) {
     writeModelsJson()
-    runtimePromise = ModelRuntime.create({
-      authPath: join(config.agentDir, 'auth.json'),
-      modelsPath: join(config.agentDir, 'models.json'),
-      refreshOnCreate: false,
-    })
+    runtimePromise = createRuntime()
   }
   return runtimePromise
+}
+
+/**
+ * 设置页改了网关/密钥/模型后的热重建：重写 models.json 并替换运行时。
+ * 已建立的会话继续用旧模型对象走完当轮；新会话/新请求即用新配置。
+ * @returns {Promise<void>}
+ */
+export async function refreshLlmRuntime() {
+  writeModelsJson()
+  runtimePromise = createRuntime()
+  await runtimePromise
 }
 
 /** 按 id 解析模型（支持 "k8s/<id>" 或 "<id>"）；不存在时抛错 */
@@ -85,11 +101,11 @@ export async function resolveModel(modelId) {
   const prov = parts[0] ?? LLM_PROVIDER
   const id = parts[1] ?? ''
   if (!prov || !id) {
-    throw new Error(`模型不可用：${modelId}（当前目录仅 ${config.llmModel}）`)
+    throw new Error(`模型不可用：${modelId}（当前目录仅 ${effective('llmModel')}）`)
   }
   const model = rt.getModel(prov, id)
   if (!model) {
-    throw new Error(`模型不可用：${modelId}（当前目录仅 ${config.llmModel}）`)
+    throw new Error(`模型不可用：${modelId}（当前目录仅 ${effective('llmModel')}）`)
   }
   return model
 }

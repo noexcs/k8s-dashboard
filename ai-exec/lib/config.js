@@ -43,9 +43,9 @@ export const config = {
   workspaceDir: join(dataDir, 'workspace'),
   /** 会话侧车元数据目录：sessionId → { cluster }（pi 会话格式不承载业务字段） */
   metaDir: join(dataDir, 'meta'),
-  /** vLLM OpenAI-compatible 网关 */
+  /** vLLM OpenAI-compatible 网关（env 底座；生效值走 overrides.effective，设置页可覆盖） */
   llmGatewayBase: envStr('LLM_GATEWAY_BASE', DEFAULT_LLM_GATEWAY_BASE).replace(/\/+$/, ''),
-  /** 只被本进程消费 */
+  /** 只被本进程消费；永不下发浏览器（GET /config 仅返回是否已配置） */
   llmApiKey: envStr('LLM_API_KEY', ''),
   llmModel: envStr('LLM_MODEL', DEFAULT_LLM_MODEL),
   /** 工具取数走 headlamp-server 代理（唯一 k8s 访问点） */

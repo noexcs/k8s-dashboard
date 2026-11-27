@@ -28,7 +28,7 @@ import http from 'node:http'
 import { SessionManager } from '@earendil-works/pi-coding-agent'
 import { UIMessageStreamAdapter } from './lib/adapter.js'
 import { config } from './lib/config.js'
-import { listModels, modelRuntime, resolveModel } from './lib/model.js'
+import { listModels, modelRuntime, refreshLlmRuntime, resolveModel } from './lib/model.js'
 import { SessionRegistry, readMeta } from './lib/sessions.js'
 import { toUIMessages } from './lib/ui-message.js'
 import { PERMISSION_MODES, decideApproval, pendingToolCallIds, pendingItems, allowToolForSession, autoAllowedTools, clearAutoAllowForSession } from './lib/permissions.js'
@@ -98,12 +98,12 @@ async function readJsonBody(req) {
 /** 面向 UI 的错误文案（SSE error part 用） */
 /** @param {unknown} e @returns {string} */
 function friendlyError(e) {
-  if (!config.llmGatewayBase) return 'AI 未配置：请通过环境变量 LLM_GATEWAY_BASE 注入 OpenAI 兼容网关地址并重启容器'
+  if (!String(effective('llmGatewayBase'))) return 'AI 未配置：请在「设置 → AI 服务」填写模型网关，或注入环境变量 LLM_GATEWAY_BASE'
   if (e instanceof HttpError) return e.message
   const msg = e instanceof Error ? e.message : String(e)
   if (/api key|authentication|auth/i.test(msg)) return `LLM 凭据未配置或失效：${msg}`
   if (/fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|timeout/i.test(msg)) {
-    return `LLM 网关（${config.llmGatewayBase}）暂不可达，请检查网络后重试。`
+    return `LLM 网关（${effective('llmGatewayBase')}）暂不可达，请检查网络后重试。`
   }
   return `AI 请求失败：${msg}`
 }
@@ -608,11 +608,12 @@ async function handleModels(res) {
  * 不该被要求去命令行看日志 */
 /** @param {import('node:http').ServerResponse} res @returns {Promise<void>} */
 async function handleStatus(res) {
+  const base = { gateway: String(effective('llmGatewayBase')), llmKeySet: !!effective('llmApiKey'), notifyConfigured: !!effective('notifyWebhookUrl'), inspectIntervalMin: Number(effective('inspectIntervalMin')), notifyLast: lastNotify() }
   try {
     const models = await listModels()
-    sendJson(res, 200, { ok: true, gateway: config.llmGatewayBase, modelCount: models.length, models: models.slice(0, 20), notifyConfigured: !!effective('notifyWebhookUrl'), inspectIntervalMin: Number(effective('inspectIntervalMin')), notifyLast: lastNotify() })
+    sendJson(res, 200, { ok: true, ...base, modelCount: models.length, models: models.slice(0, 20) })
   } catch (e) {
-    sendJson(res, 200, { ok: false, gateway: config.llmGatewayBase, error: e instanceof Error ? e.message : String(e) })
+    sendJson(res, 200, { ok: false, ...base, error: e instanceof Error ? e.message : String(e) })
   }
 }
 
@@ -734,35 +735,46 @@ async function route(req, res) {
       inspectIntervalMin: { value: Number(effective('inspectIntervalMin')), overridden: 'inspectIntervalMin' in ov, env: Number(config.inspectIntervalMin) },
       notifyWebhookUrl: { value: String(effective('notifyWebhookUrl')), overridden: 'notifyWebhookUrl' in ov, env: String(config.notifyWebhookUrl) },
       panelBaseUrl: { value: String(effective('panelBaseUrl')), overridden: 'panelBaseUrl' in ov, env: String(config.panelBaseUrl) },
+      llmGatewayBase: { value: String(effective('llmGatewayBase')), overridden: 'llmGatewayBase' in ov, env: String(config.llmGatewayBase) },
+      llmModel: { value: String(effective('llmModel')), overridden: 'llmModel' in ov, env: String(config.llmModel) },
+      // 密钥明文永不下发浏览器：只回「是否已配置」与来源
+      llmApiKey: { overridden: 'llmApiKey' in ov, configured: !!effective('llmApiKey'), envConfigured: !!config.llmApiKey },
     })
     return
   }
   if (req.method === 'PUT' && p === '/config') {
     const body = await readJsonBody(req)
+    // actor 是审计署名不是配置键：混在 body 里会被白名单整体拒绝（带署名保存全 400）
+    const { actor, ...patch } = body
     // 旧值在写前取：配置改动是全产品此前唯一绕账的变更通道，「谁改了节奏/通知指到哪」必须答得出
     const before = { ...readOverrides() }
-    const r = writeOverrides(body)
+    const r = writeOverrides(patch)
     if (r.ok) {
       const after = readOverrides()
       const fmt = (/** @type {string} */ k, /** @type {any} */ v) => {
         if (v === undefined) return 'env'
+        if (k === 'llmApiKey') return v ? '已设置' : '(空)'
         if (k === 'notifyWebhookUrl' || k === 'panelBaseUrl') {
           // webhook URL 含 token：账上只记 host，不留全文
           try { return v ? new URL(String(v)).host : '(空)' } catch { return '(非法)' }
         }
         return String(v)
       }
-      for (const k of Object.keys(body)) {
-        if (!['inspectIntervalMin', 'notifyWebhookUrl', 'panelBaseUrl'].includes(k)) continue
+      for (const k of Object.keys(patch)) {
+        if (!['inspectIntervalMin', 'notifyWebhookUrl', 'panelBaseUrl', 'llmGatewayBase', 'llmApiKey', 'llmModel'].includes(k)) continue
         if (String(before[k] ?? '') === String(after[k] ?? '')) continue
         auditRecord({
           source: 'ui',
-          ...(typeof body.actor === 'string' && body.actor ? { actor: body.actor.slice(0, 60) } : {}),
+          ...(typeof actor === 'string' && actor ? { actor: actor.slice(0, 60) } : {}),
           cluster: url.searchParams.get('cluster') || 'default',
           verb: 'config',
           target: k,
           summary: `${k}: ${fmt(k, before[k])} → ${k in after ? fmt(k, after[k]) : '还原 env'}`,
         })
+      }
+      if (['llmGatewayBase', 'llmApiKey', 'llmModel'].some(k => k in patch)) {
+        // 热重建模型目录+运行时；失败不吞 200（配置已落盘，下次请求自然报错可见）
+        await refreshLlmRuntime().catch(() => {})
       }
     }
     sendJson(res, r.ok ? 200 : 400, r)
@@ -824,14 +836,14 @@ async function route(req, res) {
 }
 
 async function main() {
-  if (config.llmApiKey === '') {
-    log('警告：LLM_API_KEY 未设置，/chat 将不可用')
+  if (!effective('llmApiKey')) {
+    log('警告：LLM 密钥未设置（env LLM_API_KEY 或「设置 → AI 服务」），网关要求鉴权时 /chat 将不可用')
   }
   await modelRuntime() // 生成 models.json 并初始化运行时（配置错误快速失败）
   server.listen(config.port, config.host, () => {
     log(
       `listening on http://${config.host}:${config.port}` +
-        ` | data=${config.dataDir} | llm=${config.llmGatewayBase} (${config.llmModel})` +
+        ` | data=${config.dataDir} | llm=${effective('llmGatewayBase') || '(未配置)'} (${effective('llmModel')})` +
         ` | backend=${config.backendBase}`,
     )
   })

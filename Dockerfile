@@ -87,9 +87,9 @@ RUN chmod +x /headlamp/entrypoint.sh \
 # 唯一对外端口：headlamp-server（含 /ai/* → ai-exec 反代）
 EXPOSE 4467
 
-# AI 执行层 LLM 网关（只被容器内 ai-exec 消费，不下发前端）。必配项：
-# LLM_GATEWAY_BASE = OpenAI 兼容网关地址（…/v1），LLM_API_KEY（网关需要鉴权时），
-# 均可用 docker run -e / k8s env 注入（轮换需重启容器）
+# AI 执行层 LLM 网关（只被容器内 ai-exec 消费，不下发前端）。env 为底座默认：
+# LLM_GATEWAY_BASE = OpenAI 兼容网关地址（…/v1），LLM_API_KEY（网关需要鉴权时）；
+# 也可在「设置 → AI 服务」页配置（保存即生效，持久化到 /data/ai 卷）
 ENV LLM_GATEWAY_BASE=""
 ENV LLM_API_KEY=""
 ENV LLM_MODEL=Qwen3.8-27B

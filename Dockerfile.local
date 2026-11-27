@@ -70,7 +70,7 @@ USER node
 EXPOSE 4467
 
 # AI 助手 LLM 网关（只被容器内 ai-exec 消费，不下发前端）。必配项：
-# LLM_GATEWAY_BASE = OpenAI 兼容网关地址（…/v1）；鉴权网关另设 LLM_API_KEY。仅 env 注入，重启生效
+# LLM_GATEWAY_BASE = OpenAI 兼容网关地址（…/v1）；鉴权网关另设 LLM_API_KEY。env 为底座，也可在设置页配置（即时生效）
 ENV LLM_GATEWAY_BASE=""
 ENV LLM_API_KEY=""
 ENV LLM_MODEL=Qwen3.8-27B

@@ -33,9 +33,10 @@ docker run -d --name k8s-dashboard -p 4467:4467 \
 # 打开 http://localhost:4467
 ```
 
-`LLM_*` 三项仅通过 env 注入（`docker run -e` / k8s env，轮换需重启容器），不下发浏览器；
+`LLM_*` 三项可由 env 注入（`docker run -e` / k8s env）作为底座，也可在「设置 → AI 服务」
+直接填写网关/模型/密钥——保存即生效并持久化到 `/data/ai` 卷，密钥只写不回显、不下发浏览器；
 不配置也可完整使用看板，仅 AI 助手/巡检提示「AI 未配置」。巡检间隔、告警 webhook
-等运行期配置可在「设置」页修改（持久化到 `/data/ai` 卷）。
+等运行期配置同样在设置页修改。
 
 ## 开发
 
