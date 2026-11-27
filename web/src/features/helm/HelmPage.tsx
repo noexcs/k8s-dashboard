@@ -34,6 +34,7 @@ import { InstallChartDialog, type HelmDialogTarget } from './InstallChartDialog'
 import type { K8sObject } from '@/api/types'
 import { fmtTime, shortTime } from '@/lib/format'
 import { LIST_GRID_HEADER, LIST_GRID_ROW } from '@/lib/listGrid'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useHighlightedCode } from '@/hooks/use-highlighted-code'
 import { Button } from '@/components/ui/button'
@@ -226,18 +227,18 @@ function HelmListPage({ cluster }: { cluster: string }) {
         </Alert>
       )}
 
-      {/* 列模板留在本页（布局专属），表头/行样式走 LIST_GRID_*（与 ResourceDataTable 底座同源） */}
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-card">
+      {/* 列模板留在本页（布局专属），表头/行样式走 LIST_GRID_*（与 ResourceDataTable 底座同源）；
+          不包 card 壳——资源列表都是裸列表，空态/骨架同口径 */}
+      <div className="min-h-0 flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-full min-h-32 items-center justify-center gap-2 text-[13px] text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            {t('sys:loadingSlow')}
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="flex h-full min-h-32 items-center justify-center p-8 text-center text-[13px] text-muted-foreground">
-            {filter ? t('sys:noMatchingRelease') : t('sys:noReleasesInNs')}
+          <div className="space-y-2 rounded-lg border bg-card p-3 motion-safe:transition-opacity motion-safe:duration-100">
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-11/12" />
+            <Skeleton className="h-5 w-5/6" />
+            <Skeleton className="h-5 w-2/3" />
           </div>
         ) : (
+          <>
           <div className={cn('grid', REL_COLS, LIST_GRID_HEADER)}>
             <span>{t('sys:colName')}</span>
             <span>{t('sys:colNamespace')}</span>
@@ -248,8 +249,12 @@ function HelmListPage({ cluster }: { cluster: string }) {
             <span>{t('sys:colUpdated')}</span>
             <span className="text-right">{t('helm:colAction')}</span>
           </div>
-        )}
-        {visible.map(r => (
+          {visible.length === 0 && (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              {filter ? t('sys:noMatchingRelease') : t('sys:noReleasesInNs')}
+            </div>
+          )}
+          {visible.map(r => (
           <div
             key={`${r.namespace}/${r.name}`}
             role="button"
@@ -297,7 +302,9 @@ function HelmListPage({ cluster }: { cluster: string }) {
               </Button>
             </span>
           </div>
-        ))}
+          ))}
+          </>
+        )}
       </div>
 
       {upgradeTarget && (
@@ -506,7 +513,7 @@ function HelmDetailPage({ cluster, ns, name }: { cluster: string; ns: string; na
         </TabsContent>
 
         <TabsContent value="history" className="mt-2 min-w-0 flex-1">
-          <div className="overflow-hidden rounded-lg border bg-card">
+          <div>
             <div className={cn('grid', HIST_COLS, LIST_GRID_HEADER)}>
               <span>{t('sys:colRevision')}</span>
               <span>{t('sys:colStatus')}</span>

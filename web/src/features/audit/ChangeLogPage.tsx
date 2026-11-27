@@ -2,11 +2,12 @@
 // 数据源 = ai-exec audit.jsonl（AI 工具执行点直写 + UI 写操作经 POST /audit 上报），
 // 与 managedFields（机器视角）互补：这里记的是意图层的操作流。
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { History, RefreshCw } from 'lucide-react'
+import { History, RefreshCw, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
 import { tf, useT } from '@/i18n'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertTitle } from '@/components/ui/alert'
@@ -103,13 +104,18 @@ export function ChangeLogPage() {
     placeholderData: keepPreviousData,
     retry: 0,
   })
+  const [filter, setFilter] = useState('')
   const rows = useMemo(() => {
     let items = q.data ?? []
     if (clusterOnly && cluster) items = items.filter((e) => e.cluster === cluster)
     if (srcFilter !== 'all') items = items.filter((e) => e.source === srcFilter)
     if (verbFilter) items = items.filter((e) => e.verb === verbFilter)
+    if (filter) {
+      const f = filter.toLowerCase()
+      items = items.filter((e) => `${e.target ?? ''} ${e.summary ?? ''} ${e.verb ?? ''} ${e.actor ?? ''}`.toLowerCase().includes(f))
+    }
     return items
-  }, [q.data, clusterOnly, cluster, srcFilter, verbFilter])
+  }, [q.data, clusterOnly, cluster, srcFilter, verbFilter, filter])
   // chip 截断不得静默丢关键账目 verb：deny/acked/ignored/expired 永远保留名额，其余按出现序补足
   const verbs = useMemo(() => {
     const all = [...new Set((q.data ?? []).map((e) => e.verb ?? ''))].filter(Boolean)
@@ -126,6 +132,12 @@ export function ChangeLogPage() {
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-medium">{t('audit:title')}</h1>
         <span className="text-[13px] text-muted-foreground">{t('audit:sub')}</span>
+        {/* 计数元信息与其他列表页同构（N 条 · 更新于） */}
+        <span className="whitespace-nowrap text-[13px] tabular-nums text-muted-foreground">
+          {tf('audit:metaCount', { n: rows.length })}
+          {' · '}
+          {tf('audit:metaUpdated', { time: new Date(q.dataUpdatedAt || Date.now()).toLocaleTimeString('zh-CN', { hour12: false }) })}
+        </span>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
           {/* 组间 12 组内 6：来源/集群、时间窗、刷新是三个决策，靠间隙分堆而不是再加线 */}
           <div className="flex items-center gap-1.5">
@@ -158,6 +170,26 @@ export function ChangeLogPage() {
                 {t(w === 'all' ? 'audit:wAll' : w === '8h' ? 'audit:w8h' : w === 'day' ? 'audit:wDay' : 'audit:wWeek')}
               </button>
             ))}
+          </div>
+          {/* 过滤框与资源列表同几何（w-56/pl-8/有值出 X） */}
+          <div className="relative w-56 min-w-0">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              placeholder={t('audit:filterPh')}
+              className={cn('w-full pl-8', filter && 'pr-7')}
+            />
+            {filter && (
+              <button
+                type="button"
+                aria-label={tf('res:clearFilter')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                onClick={() => setFilter('')}
+              >
+                <X className="size-3" />
+              </button>
+            )}
           </div>
           <Button variant="ghost" size="icon" className="size-8" aria-label={t('core:refresh')} onClick={() => void q.refetch()}>
             <RefreshCw className={cn('size-4', q.isFetching && 'animate-spin')} />
@@ -215,6 +247,8 @@ export function ChangeLogPage() {
             <TableCell colSpan={5} className="px-3 py-4">
               <div className="space-y-2">
                 <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-11/12" />
+                <Skeleton className="h-5 w-5/6" />
                 <Skeleton className="h-5 w-2/3" />
               </div>
             </TableCell>

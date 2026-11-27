@@ -16,6 +16,7 @@ import {
 import { tf, useT } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { LIST_GRID_HEADER, LIST_GRID_ROW } from '@/lib/listGrid'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -173,14 +174,14 @@ export function ChartsTab({
               </AlertAction>
             </Alert>
           )}
-          <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-card">
+          <div className="min-h-0 flex-1 overflow-auto">
             {isLoading || (repoData == null && !reposProbeFailed) ? (
-              <div className="flex h-full min-h-32 items-center justify-center gap-2 text-[13px] text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                {t('sys:loadingSlow')}
+              <div className="space-y-2 rounded-lg border bg-card p-3 motion-safe:transition-opacity motion-safe:duration-100">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-11/12" />
+                <Skeleton className="h-5 w-5/6" />
+                <Skeleton className="h-5 w-2/3" />
               </div>
-            ) : groups.length === 0 ? (
-              <div className="flex h-full min-h-32 items-center justify-center p-8 text-center text-[13px] text-muted-foreground">{t('helm:emptyCharts')}</div>
             ) : (
               <>
                 <div className={cn('grid', CHART_COLS, LIST_GRID_HEADER)}>
@@ -192,6 +193,9 @@ export function ChartsTab({
                   <span>{t('helm:colRepos')}</span>
                   <span className="text-right">{t('helm:install')}</span>
                 </div>
+                {groups.length === 0 && (
+                  <div className="py-8 text-center text-sm text-muted-foreground">{t('helm:emptyCharts')}</div>
+                )}
                 {groups.map(g => {
                   const open = expanded === g.name
                   const latest = g.versions[0]
@@ -397,14 +401,14 @@ export function RepositoriesTab({ cluster }: { cluster: string }) {
         </Alert>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-card">
+      <div className="min-h-0 flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-full min-h-32 items-center justify-center gap-2 text-[13px] text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            {t('sys:loadingSlow')}
+          <div className="space-y-2 rounded-lg border bg-card p-3 motion-safe:transition-opacity motion-safe:duration-100">
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-11/12" />
+            <Skeleton className="h-5 w-5/6" />
+            <Skeleton className="h-5 w-2/3" />
           </div>
-        ) : repos.length === 0 ? (
-          <div className="flex h-full min-h-32 items-center justify-center p-8 text-center text-[13px] text-muted-foreground">{t('helm:emptyRepos')}</div>
         ) : (
           <>
             <div className={cn('grid', REPO_COLS, LIST_GRID_HEADER)}>
@@ -412,6 +416,9 @@ export function RepositoriesTab({ cluster }: { cluster: string }) {
               <span>{t('helm:repoUrl')}</span>
               <span className="text-right">{t('helm:colAction')}</span>
             </div>
+            {repos.length === 0 && (
+              <div className="py-8 text-center text-sm text-muted-foreground">{t('helm:emptyRepos')}</div>
+            )}
             {repos.map(r => (
               <div
                 key={r.name}
