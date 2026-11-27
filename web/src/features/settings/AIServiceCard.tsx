@@ -214,8 +214,10 @@ export function AIServiceCard() {
   // ---- 多 Provider：列表全量替换 PUT llmProviders；active/默认模型单独 PUT。
   // 密钥只写不回显：编辑留空=__KEEP__（服务端合回旧 key），与「显式无密钥」区分开 ----
   const provs = cfgQ.data?.llmProviders
-  type ProvForm = { id?: string; hasKey?: boolean; name: string; baseUrl: string; apiKey: string; api: string; models: string; meta: Record<string, ProvModel> }
+  type ProvForm = { id?: string; hasKey?: boolean; name: string; baseUrl: string; apiKey: string; api: string; models: ProvModel[] }
   const [provForm, setProvForm] = useState<null | ProvForm>(null)
+  const [modelDraft, setModelDraft] = useState('')
+  const [modelErr, setModelErr] = useState('')
   const [provErr, setProvErr] = useState('')
   const [provBusy, setProvBusy] = useState(false)
   // 每 provider 一格测试结果（id→态）：全局单态会把 A 的「可用」串显示在 B 行上
@@ -246,14 +248,49 @@ export function AIServiceCard() {
       })
       const d = (await r.json()) as { ok?: boolean; error?: string; models?: ProvModel[] }
       setPTests(m => ({ ...m, [slot]: d.ok ? { state: 'ok', models: d.models ?? [] } : { state: 'fail', err: d.error ?? '' } }))
-      // 表单态测通：单模型直接填进模型框（含上下文元数据），多模型给「填入」按钮（防 50 个全灌进来）
-      if (d.ok && provForm && slot === (provForm.id ?? 'new') && (d.models?.length ?? 0) === 1) {
-        const m0 = d.models![0]
-        setProvForm(f => (f ? { ...f, models: m0.id, meta: { ...f.meta, [m0.id]: m0 } } : f))
+      // 表单态测通且列表还是空的（新建/刚清完）：目录结果直接落列表，一步到位
+      if (d.ok && (d.models?.length ?? 0) > 0 && provForm && slot === (provForm.id ?? 'new') && provForm.models.length === 0) {
+        const filled = d.models!
+        setProvForm(f => (f && f.models.length === 0 ? { ...f, models: filled } : f))
       }
+      return d
     } catch (e) {
       setPTests(m => ({ ...m, [slot]: { state: 'fail', err: e instanceof Error ? e.message.slice(0, 100) : '' } }))
+      return null
     }
+  }
+  // 「获取模型」按钮：测网关并直接替换列表（用户明确点了就覆盖，这正是按钮语义）
+  const fetchModels = async () => {
+    const f = provForm
+    if (!f) return
+    const baseUrl = f.baseUrl.trim()
+    if (!/^https?:\/\/.+/i.test(baseUrl)) {
+      setProvErr(t('settings:aiProviderFormIncomplete'))
+      return
+    }
+    const d = await testProvider({ id: f.id, baseUrl, api: f.api, apiKey: f.apiKey === '' && f.hasKey ? '__KEEP__' : f.apiKey }, f.id ?? 'new')
+    if (d?.ok && d.models) {
+      const prev = new Map(f.models.map(m => [m.id, m]))
+      // 网关为准；但目录没报 ctx 时保留同 id 旧条目的元数据（此前获取/手填的信息不丢）
+      const merged = d.models.map(nm => ({ ...nm, contextWindow: nm.contextWindow ?? prev.get(nm.id)?.contextWindow, maxTokens: nm.maxTokens ?? prev.get(nm.id)?.maxTokens }))
+      setProvForm(q => (q ? { ...q, models: merged } : q))
+    }
+  }
+  // 手输添加：与服务端同规则（单段标识，无空格/逗号/引号）
+  const addModelDraft = () => {
+    const id = modelDraft.trim()
+    if (!id) return
+    if (id.length > 120 || /[\s,;"']/.test(id)) {
+      setModelErr(t('settings:aiProviderModelBad'))
+      return
+    }
+    if (provForm?.models.some(m => m.id === id)) {
+      setModelErr(t('settings:aiProviderModelDup'))
+      return
+    }
+    setModelErr('')
+    setModelDraft('')
+    setProvForm(f => (f ? { ...f, models: [...f.models, { id }] } : f))
   }
   // 地址/密钥/格式失焦后自动拉一次模型目录（sig 去重，不重播）；手动「测试连接」保留
   const probeSigRef = useRef('')
@@ -270,7 +307,7 @@ export function AIServiceCard() {
     if (!provForm || provBusy) return
     const name = provForm.name.trim()
     const baseUrl = provForm.baseUrl.trim()
-    const models = provForm.models.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+    const models = provForm.models
     if (!name || !/^https?:\/\/.+/i.test(baseUrl) || models.length === 0) {
       setProvErr(t('settings:aiProviderFormIncomplete'))
       return
@@ -282,8 +319,8 @@ export function AIServiceCard() {
         name,
         baseUrl,
         api: provForm.api,
-        // 手填 id + 自动获取到的每模型元数据合并落盘（拿不到的字段由服务端回落默认）
-        models: models.map(id => ({ ...provForm.meta[id], id })),
+        // 列表条目原样落盘（手输无元数据、获取来的带 ctx）
+        models: models.map(m => ({ ...m })),
         // 编辑且留空=保持原密钥；新表单留空=无鉴权网关
         apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey,
         ...(provForm.id ? { id: provForm.id } : {}),
@@ -582,7 +619,6 @@ export function AIServiceCard() {
 
   // ---- 多 Provider 区：列表行（默认 radio/测试/编辑/两段删除）+ 内联表单 + env 底座。
   // env 三瓦片仅在列表为空时保留（单网关老用法）；有 provider 后 env 只显示一行底注 ----
-  const provFormModels = provForm?.models.split(/[,\s]+/).filter(Boolean) ?? []
   const formTest = pTests[provForm?.id ?? 'new']
   const providerRow = (p: ProviderItem) => {
     const active = p.id === provs?.activeId
@@ -615,7 +651,7 @@ export function AIServiceCard() {
               onClick={() => {
                 setPTests(m => { const copy = { ...m }; delete copy[p.id]; return copy })
                 setProvErr('')
-                setProvForm({ id: p.id, hasKey: p.hasKey, name: p.name, baseUrl: p.baseUrl, apiKey: '', api: p.api, models: p.models.map(x => x.id).join(', '), meta: Object.fromEntries(p.models.map(x => [x.id, x])) })
+                setProvForm({ id: p.id, hasKey: p.hasKey, name: p.name, baseUrl: p.baseUrl, apiKey: '', api: p.api, models: p.models.map(m => ({ ...m })) })
               }}
             >
               <Pencil />
@@ -680,38 +716,45 @@ export function AIServiceCard() {
                 ))}
               </SelectContent>
             </Select>
+            {/* URL 与密钥同宽（各占整行）：两行等长输入框，视觉上也提示它们是同一组连接参数 */}
             <Input aria-label={t('settings:aiProviderUrl')} placeholder="http://host:port/v1" value={provForm.baseUrl} onChange={e => setProvForm(f => (f ? { ...f, baseUrl: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="font-mono text-[13px] sm:col-span-2" />
-            <Input type="password" aria-label={t('settings:aiProviderKey')} placeholder={provForm.hasKey ? t('settings:aiProviderKeyKeep') : t('settings:aiProviderKeyPh')} value={provForm.apiKey} onChange={e => setProvForm(f => (f ? { ...f, apiKey: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="font-mono text-[13px]" />
-            <Input aria-label={t('settings:aiProviderModels')} placeholder={t('settings:aiProviderModels')} value={provForm.models} onChange={e => { setProvForm(f => (f ? { ...f, models: e.target.value } : f)); setPTests(m => { const key = provForm.id ?? 'new'; if (!(key in m)) return m; const copy = { ...m }; delete copy[key]; return copy }) }} className="font-mono text-[13px]" onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void saveProvider() }} />
+            <Input type="password" aria-label={t('settings:aiProviderKey')} placeholder={provForm.hasKey ? t('settings:aiProviderKeyKeep') : t('settings:aiProviderKeyPh')} value={provForm.apiKey} onChange={e => setProvForm(f => (f ? { ...f, apiKey: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="font-mono text-[13px] sm:col-span-2" />
           </div>
-          {/* 模型 chips：手动输入常驻，测通后「填入」覆盖（网关目录是真源，附带上下文上限） */}
-          {provFormModels.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {provFormModels.map(m => (
-                <span key={m} className="rounded-md border bg-background px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                  {m}
-                  {provForm.meta[m]?.contextWindow && <span className="ml-1 tabular-nums opacity-70">{fmtCtx(provForm.meta[m].contextWindow)}</span>}
-                </span>
-              ))}
+          {formTest?.state === 'ok' && <p role="status" className="mt-1.5 text-xs text-muted-foreground">{tf('settings:aiProviderTestOk', { n: formTest.models?.length ?? 0 })}</p>}
+          {formTest?.state === 'fail' && <p role="alert" className="mt-1.5 break-all text-xs text-destructive">{formTest.err}</p>}
+          {/* 模型列表：获取按钮=网关目录为准整体替换；行内可删；手输回车补充目录之外的模型 */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground tabular-nums">{t('settings:aiProviderModels')} · {provForm.models.length}</span>
+              <Button size="sm" variant="outline" aria-disabled={formTest?.state === 'busy' || undefined} onClick={() => { if (formTest?.state !== 'busy') void fetchModels() }}>
+                {formTest?.state === 'busy' ? <Spinner /> : <RefreshCw />}
+                {t('settings:aiProviderFetchModels')}
+              </Button>
             </div>
-          )}
-          {formTest?.state === 'ok' && (formTest.models?.length ?? 0) > 0 && (
-            <Button size="sm" variant="outline" className="mt-2" onClick={() => setProvForm(f => { if (!f) return f; const meta = { ...f.meta }; for (const m of formTest.models!) meta[m.id] = m; return { ...f, models: formTest.models!.map(m => m.id).join(', '), meta } })}>
-              <RefreshCw />
-              {tf('settings:aiProviderFillModels', { n: formTest.models!.length })}
-            </Button>
-          )}
-          {formTest?.state === 'fail' && <p role="alert" className="mt-2 break-all text-xs text-destructive">{formTest.err}</p>}
+            {provForm.models.length === 0 ? (
+              <p className="mt-1.5 text-xs text-muted-foreground">{t('settings:aiProviderModelsEmpty')}</p>
+            ) : (
+              <ul className="mt-1.5 space-y-1">
+                {provForm.models.map(m => (
+                  <li key={m.id} className={cn(TILE, 'flex items-center justify-between gap-2 bg-background px-2 py-1')}>
+                    <span className="min-w-0 truncate font-mono text-xs">{m.id}</span>
+                    {m.contextWindow ? <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{fmtCtx(m.contextWindow)}</span> : null}
+                    <Button size="icon" variant="ghost" className="size-6 shrink-0" aria-label={tf('settings:aiProviderModelRemove', { name: m.id })} onClick={() => setProvForm(f => (f ? { ...f, models: f.models.filter(x => x.id !== m.id) } : f))}>
+                      <X className="size-3.5" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Input value={modelDraft} aria-label={t('settings:aiProviderAddModel')} placeholder={t('settings:aiProviderAddModel')} onChange={e => { setModelDraft(e.target.value); setModelErr('') }} onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); addModelDraft() } }} className="mt-1.5 font-mono text-[13px]" />
+            {modelErr && <p role="alert" className="mt-1.5 break-all text-xs text-destructive">{modelErr}</p>}
+          </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button size="sm" aria-disabled={provBusy || undefined} onClick={() => { if (!provBusy) void saveProvider() }}>
               {provBusy ? <Spinner /> : <Check />}
               {t('settings:cfgSave')}
             </Button>
-            <Button size="sm" variant="outline" aria-disabled={formTest?.state === 'busy' || undefined} onClick={() => { if (formTest?.state !== 'busy') void testProvider({ id: provForm.id, baseUrl: provForm.baseUrl, apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey, api: provForm.api }, provForm.id ?? 'new') }}>
-              {formTest?.state === 'busy' ? <Spinner /> : <Send />}
-              {t('settings:aiProviderTest')}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setProvForm(null); setProvErr('') }}>
+            <Button size="sm" variant="outline" onClick={() => { setProvForm(null); setProvErr(''); setModelDraft(''); setModelErr('') }}>
               {t('settings:cfgCancel')}
             </Button>
           </div>
@@ -719,7 +762,7 @@ export function AIServiceCard() {
         </div>
       )}
       {!provForm && (
-        <Button size="sm" variant="outline" onClick={() => { setProvErr(''); setProvForm({ name: '', baseUrl: '', apiKey: '', api: 'openai-completions', models: '', meta: {} }) }}>
+        <Button size="sm" variant="outline" onClick={() => { setProvErr(''); setModelDraft(''); setModelErr(''); setProvForm({ name: '', baseUrl: '', apiKey: '', api: 'openai-completions', models: [] }) }}>
           <Plus />
           {t('settings:aiProviderAdd')}
         </Button>
