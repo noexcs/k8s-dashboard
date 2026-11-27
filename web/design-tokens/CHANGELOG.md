@@ -2,6 +2,11 @@
 
 本目录 Design Token 集合的变更史。SemVer:MAJOR=删 token/改类型/改名,MINOR=新增 token/主题,PATCH=改值。
 
+## [1.5.1] - 2026-11-27
+
+### Changed
+- 五主题 light 模式导航从深色(Radix step-11)改为浅色调色板同族 tint(sidebar=step3 / foreground=step11 / accent=step4 / border=step6,值取 Radix v3 官方色表):深导航与浅色纸底对比过强(用户反馈),对齐 ink 浅导航基线与 shadcn sidebar 语言;dark 模式导航本就是邻近色不变。sidebar-primary 保留 accent 彩,活动项仍有彩色高亮。
+
 ## [1.5.0] - 2026-11-27
 
 ### Changed

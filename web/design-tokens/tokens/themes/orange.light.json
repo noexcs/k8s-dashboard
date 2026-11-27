@@ -97,11 +97,11 @@
     "navigation": {
       "sidebar": {
         "$type": "color",
-        "$value": "#4f3422"
+        "$value": "#fff7c2"
       },
       "sidebar-foreground": {
         "$type": "color",
-        "$value": "#fff7c2"
+        "$value": "#ab6400"
       },
       "sidebar-primary": {
         "$type": "color",
@@ -113,15 +113,15 @@
       },
       "sidebar-accent": {
         "$type": "color",
-        "$value": "#ffba18"
+        "$value": "#ffee9c"
       },
       "sidebar-accent-foreground": {
         "$type": "color",
-        "$value": "#fefdfb"
+        "$value": "#ab6400"
       },
       "sidebar-border": {
         "$type": "color",
-        "$value": "#ffba18"
+        "$value": "#f3d673"
       },
       "sidebar-ring": {
         "$type": "color",

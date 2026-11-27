@@ -24,7 +24,7 @@
     {
       "id": "emerald",
       "name": "Emerald",
-      "note": "shadcn emerald 预设 accent + Radix jade 形态：深绿导航 + 锐角 + 密排",
+      "note": "shadcn emerald 预设 accent + jade 浅调形态：薄荷导航 + 锐角 + 密排",
       "radius": "0.375rem",
       "layers": {
         "light": "emerald.light",
@@ -34,7 +34,7 @@
     {
       "id": "orange",
       "name": "Orange",
-      "note": "shadcn orange 预设 accent + Radix amber 奶油纸感：沙底 + 深棕导航 + 柔圆 + 暖投影",
+      "note": "shadcn orange 预设 accent + amber 奶油纸感：沙底 + 琥珀导航 + 柔圆 + 暖投影",
       "radius": "1rem",
       "layers": {
         "light": "orange.light",
@@ -44,7 +44,7 @@
     {
       "id": "rose",
       "name": "Rose",
-      "note": "shadcn rose 预设 accent + Radix crimson 全色阶：玫红纸底 + 酒红导航",
+      "note": "shadcn rose 预设 accent + crimson 全色阶：玫红纸底 + 玫色调导航",
       "radius": "0.625rem",
       "layers": {
         "light": "rose.light",
@@ -54,7 +54,7 @@
     {
       "id": "indigo",
       "name": "Indigo",
-      "note": "shadcn indigo 预设 accent + Radix indigo 全色阶：靛蓝纸底 + 深靛导航",
+      "note": "shadcn indigo 预设 accent + indigo 全色阶：靛蓝纸底 + 靛色调导航",
       "radius": "0.625rem",
       "layers": {
         "light": "indigo.light",
