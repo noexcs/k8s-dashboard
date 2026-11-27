@@ -1,9 +1,15 @@
 version: 2
 updates:
+  # majors 一律不开 PR（typescript 7 / node 25 这类跳跃要人主动升，不该由周扫描替决定）；
+  # 每个生态合并为一个分组 PR 并限并发，避免首次扫描一次开十几个
   - package-ecosystem: npm
     directory: /web
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
     groups:
       web-deps:
         patterns:
@@ -12,12 +18,33 @@ updates:
     directory: /ai-exec
     schedule:
       interval: weekly
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      ai-exec-deps:
+        patterns:
+          - '*'
   - package-ecosystem: gomod
     directory: /backend
     schedule:
       interval: weekly
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      backend-deps:
+        patterns:
+          - '*'
   - package-ecosystem: docker
     directories:
       - /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 2
+    groups:
+      docker-deps:
+        patterns:
+          - '*'
