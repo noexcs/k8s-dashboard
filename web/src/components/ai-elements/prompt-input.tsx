@@ -210,7 +210,10 @@ export function PromptInput({
                   variant="ghost"
                   aria-label={tf('ui:modelAria', { v: selectedModel })}
                 >
-                  {selectedModel}
+                  {/* 随机前缀的模型全名可达 30+ 字符：截断，否则 addon 行 min-content 撑爆 dock */}
+                  <span className="max-w-[8.5rem] truncate" title={selectedModel}>
+                    {selectedModel}
+                  </span>
                   <ChevronDown />
                 </InputGroupButton>
               </DropdownMenuTrigger>
