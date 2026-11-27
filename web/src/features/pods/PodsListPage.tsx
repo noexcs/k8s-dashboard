@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { NamespaceFilter } from '@/components/NamespaceFilter'
+import { ExportButton } from '@/features/resources/ExportButton'
 import { ResourceDataTable } from '@/components/ResourceDataTable'
-import type { Col } from '@/resources/registry'
+import { RESOURCE_MAP, type Col } from '@/resources/registry'
 import { tf, useT } from '@/i18n'
 
 /** 容器重启总数 */
@@ -214,27 +215,41 @@ export function PodsListPage() {
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <h1 className="text-lg font-medium">Pods</h1>
-          <span className="whitespace-nowrap text-[13px] text-muted-foreground">
+          {/* 元信息与通用列表页同构：一段式「范围 · 数 · 同步于」，同字号同 tabular */}
+          <span className="whitespace-nowrap text-[13px] tabular-nums text-muted-foreground">
             {allNs ? (nsFilter ? tf('pods:namespaceFilter', { ns: nsFilter }) : t('pods:allNamespaces')) : ns} ·{' '}
             {filteredCount ?? filtered.length}
+            {' · '}
+            {lastSync != null && tf('pods:syncedAt', { time: new Date(lastSync).toLocaleTimeString('zh-CN', { hour12: false }) })}
           </span>
-          {reconnecting && <span className="text-[13px] text-caution">{t('pods:reconnecting')}</span>}
-          {lastSync && !reconnecting && (
-            <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-              {tf('pods:syncedAt', { time: new Date(lastSync).toLocaleTimeString('zh-CN', { hour12: false }) })}
+          {reconnecting && (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-caution">
+              <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-caution" />
+              {t('pods:reconnecting')}
             </span>
           )}
         </div>
         <div className="ml-auto flex w-full items-center gap-2 @sm/main:w-auto">
+          <ExportButton items={() => filtered} def={RESOURCE_MAP.Pod} cluster={cluster!} ns={nsFilter ?? ns ?? undefined} selected={[]} />
           {allNs && <NamespaceFilter cluster={cluster!} value={nsFilter} onChange={setNsFilter} />}
-          <div className="relative min-w-0 flex-1 @sm/main:w-64 @sm/main:flex-none">
-            <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative min-w-0 flex-1 @sm/main:w-56 @sm/main:flex-none">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={filter}
               onChange={e => setFilter(e.target.value)}
               placeholder={t('pods:filterNamePlaceholder')}
-              className="pl-7"
+              className={cn('w-full pl-8', filter && 'pr-7')}
             />
+            {filter && (
+              <button
+                type="button"
+                aria-label={tf('res:clearFilter')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                onClick={() => setFilter('')}
+              >
+                <X className="size-3" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -242,10 +257,11 @@ export function PodsListPage() {
       <div className="min-h-0 flex-1 overflow-auto">
         {/* 已同步但 0 Pod 是正常空态：骨架只在「还没同步过且无错」时显示（同 ResourceListPage 口径） */}
         {items.length === 0 && !error && lastSync == null ? (
-          <div className="space-y-2 rounded-lg border bg-card p-3">
+          <div className="space-y-2 rounded-lg border bg-card p-3 motion-safe:transition-opacity motion-safe:duration-100">
             <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-11/12" />
+            <Skeleton className="h-5 w-5/6" />
             <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-5 w-1/2" />
           </div>
         ) : (
           <ResourceDataTable
