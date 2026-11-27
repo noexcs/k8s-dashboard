@@ -1,0 +1,169 @@
+{
+  "color": {
+    "background": {
+      "default": {
+        "$type": "color",
+        "$value": "#16120c"
+      }
+    },
+    "foreground": {
+      "default": {
+        "$type": "color",
+        "$value": "#ffe7b3"
+      }
+    },
+    "surface": {
+      "card": {
+        "$type": "color",
+        "$value": "#302008"
+      },
+      "card-foreground": {
+        "$type": "color",
+        "$value": "#ffe7b3"
+      },
+      "popover": {
+        "$type": "color",
+        "$value": "#3f2700"
+      },
+      "popover-foreground": {
+        "$type": "color",
+        "$value": "#ffe7b3"
+      }
+    },
+    "primary": {
+      "default": {
+        "$type": "color",
+        "$value": "oklch(0.47 0.157 37.304)"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "oklch(0.98 0.016 73.684)"
+      }
+    },
+    "secondary": {
+      "default": {
+        "$type": "color",
+        "$value": "oklch(0.274 0.006 286.033)"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "oklch(0.985 0 0)"
+      }
+    },
+    "muted": {
+      "default": {
+        "$type": "color",
+        "$value": "#302008"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#ffca16"
+      }
+    },
+    "accent": {
+      "default": {
+        "$type": "color",
+        "$value": "#3f2700"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#ffe7b3"
+      }
+    },
+    "feedback": {
+      "destructive": {
+        "$type": "color",
+        "$value": "#e5484d"
+      },
+      "destructive-foreground": {
+        "$type": "color",
+        "$value": "#ffd1d9"
+      }
+    },
+    "border": {
+      "default": {
+        "$type": "color",
+        "$value": "#5c3d05"
+      },
+      "input": {
+        "$type": "color",
+        "$value": "#714f19"
+      },
+      "ring": {
+        "$type": "color",
+        "$value": "#8f6424"
+      }
+    },
+    "navigation": {
+      "sidebar": {
+        "$type": "color",
+        "$value": "#1d180f"
+      },
+      "sidebar-foreground": {
+        "$type": "color",
+        "$value": "#ffe7b3"
+      },
+      "sidebar-primary": {
+        "$type": "color",
+        "$value": "oklch(0.705 0.213 47.604)"
+      },
+      "sidebar-primary-foreground": {
+        "$type": "color",
+        "$value": "oklch(0.98 0.016 73.684)"
+      },
+      "sidebar-accent": {
+        "$type": "color",
+        "$value": "#4d3000"
+      },
+      "sidebar-accent-foreground": {
+        "$type": "color",
+        "$value": "#ffe7b3"
+      },
+      "sidebar-border": {
+        "$type": "color",
+        "$value": "#5c3d05"
+      },
+      "sidebar-ring": {
+        "$type": "color",
+        "$value": "#8f6424"
+      }
+    }
+  },
+  "$description": "Cream 奶油纸感：Radix Colors v3 amber 全色阶照抄（@radix-ui/colors），彩色纸底 + 深色导航（light）/彩色暗底（dark）；chart-*/状态色不随主题（图表语义优先）。",
+  "radius": {
+    "base": {
+      "$type": "dimension",
+      "$value": "{radius.scale.soft}"
+    }
+  },
+  "spacing": {
+    "scale": {
+      "default": {
+        "$type": "dimension",
+        "$value": "{spacing.scale.soft}"
+      }
+    }
+  },
+  "shadow": {
+    "xs": {
+      "$type": "other",
+      "$value": "{shadow.warm-xs}"
+    },
+    "sm": {
+      "$type": "other",
+      "$value": "{shadow.warm-sm}"
+    },
+    "md": {
+      "$type": "other",
+      "$value": "{shadow.warm-md}"
+    },
+    "lg": {
+      "$type": "other",
+      "$value": "{shadow.warm-lg}"
+    },
+    "xl": {
+      "$type": "other",
+      "$value": "{shadow.warm-xl}"
+    }
+  }
+}

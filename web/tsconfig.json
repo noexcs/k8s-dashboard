@@ -15,7 +15,8 @@
     "resolveJsonModule": true,
     "useDefineForClassFields": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@tokens/*": ["./design-tokens/dist/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

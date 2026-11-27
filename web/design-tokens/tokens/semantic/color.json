@@ -1,0 +1,79 @@
+{
+  "$description": "语义色（light 基准 = ink light；dark 覆盖在 themes/dark.json）。取值为 {primitive} 引用，禁止字面量。chart 组按「语义优先」标定：1=positive、3=caution、4=negative，纯分类序列走中性阶。",
+  "color": {
+    "background": {
+      "default": { "$type": "color", "$value": "{color.paper.50}", "$description": "页面底（light paper-50 / dark night-50）" }
+    },
+    "foreground": {
+      "default": { "$type": "color", "$value": "{color.graphite.900}", "$description": "主文本墨色" }
+    },
+    "surface": {
+      "card": { "$type": "color", "$value": "{color.paper.0}", "$description": "卡片/浮层底" },
+      "card-foreground": { "$type": "color", "$value": "{color.graphite.900}", "$description": "卡片文本" },
+      "popover": { "$type": "color", "$value": "{color.paper.0}", "$description": "弹出层底" },
+      "popover-foreground": { "$type": "color", "$value": "{color.graphite.900}", "$description": "弹出层文本" }
+    },
+    "primary": {
+      "default": { "$type": "color", "$value": "{color.graphite.900}", "$description": "主行动底色（ink 主题=墨块，唯一强调点）" },
+      "foreground": { "$type": "color", "$value": "{color.paper.50}", "$description": "主行动上的文字" }
+    },
+    "secondary": {
+      "default": { "$type": "color", "$value": "{color.paper.200}", "$description": "次级按钮底" },
+      "foreground": { "$type": "color", "$value": "{color.graphite.900}", "$description": "次级按钮文字" }
+    },
+    "muted": {
+      "default": { "$type": "color", "$value": "{color.paper.200}", "$description": "弱背景（骨架/占位/禁用）" },
+      "foreground": { "$type": "color", "$value": "{color.graphite.650}", "$description": "次要文本（说明、标签）" }
+    },
+    "accent": {
+      "default": { "$type": "color", "$value": "{color.paper.200}", "$description": "hover/选中弱底" },
+      "foreground": { "$type": "color", "$value": "{color.graphite.900}", "$description": "hover/选中文本" }
+    },
+    "feedback": {
+      "positive": { "$type": "color", "$value": "{color.green.700}", "$description": "健康/Running：light 取 green-700 使文字对白底达 AA 4.5:1" },
+      "negative": { "$type": "color", "$value": "{color.red.600}", "$description": "失败/异常文字" },
+      "caution": { "$type": "color", "$value": "{color.amber.800}", "$description": "警告文字" },
+      "caution-on-primary": { "$type": "color", "$value": "{color.amber.850}", "$description": "警告文字落在 primary 深底上的标定" },
+      "on-muted": { "$type": "color", "$value": "{color.graphite.700}", "$description": "文本压在 muted 底上的标定" },
+      "destructive": { "$type": "color", "$value": "{color.red.500}", "$description": "危险操作按钮底" },
+      "destructive-on-primary": { "$type": "color", "$value": "{color.red.650}", "$description": "危险文字落在 primary 深底上的标定" },
+      "destructive-foreground": { "$type": "color", "$value": "{color.paper.0}", "$description": "危险按钮上的文字" }
+    },
+    "border": {
+      "default": { "$type": "color", "$value": "{color.graphite.900-a08}", "$description": "发丝线 = 主文本色 8%" },
+      "input": { "$type": "color", "$value": "{color.graphite.900-a12}", "$description": "输入框描边（比发丝线略重）" },
+      "ring": { "$type": "color", "$value": "{color.graphite.600}", "$description": "焦点环" }
+    },
+    "chart": {
+      "1": { "$type": "color", "$value": "{color.feedback.positive}", "$description": "Running 序列（=positive）" },
+      "2": { "$type": "color", "$value": "{color.graphite.450}", "$description": "缺口/柱填充：与相邻 amber 段需 ≥2.7 亮度差，勿降档" },
+      "3": { "$type": "color", "$value": "{color.feedback.caution}", "$description": "Warning 态（=caution，dark 走降饱和档）" },
+      "4": { "$type": "color", "$value": "{color.feedback.negative}", "$description": "Failed 序列（=negative）" },
+      "5": { "$type": "color", "$value": "{color.graphite.500}", "$description": "中性分类序列第 5 档" }
+    },
+    "navigation": {
+      "sidebar": { "$type": "color", "$value": "{color.paper.150}", "$description": "侧栏底" },
+      "sidebar-foreground": { "$type": "color", "$value": "{color.graphite.900}", "$description": "侧栏文本" },
+      "sidebar-primary": { "$type": "color", "$value": "{color.graphite.900}", "$description": "侧栏主块（dark=品牌蓝，当前集群标记）" },
+      "sidebar-primary-foreground": { "$type": "color", "$value": "{color.paper.50}", "$description": "侧栏主块文字" },
+      "sidebar-accent": { "$type": "color", "$value": "{color.paper.400}", "$description": "侧栏 hover 底" },
+      "sidebar-accent-foreground": { "$type": "color", "$value": "{color.graphite.900}", "$description": "侧栏 hover 文本" },
+      "sidebar-border": { "$type": "color", "$value": "{color.graphite.900-a08}", "$description": "侧栏发丝线" },
+      "sidebar-ring": { "$type": "color", "$value": "{color.graphite.600}", "$description": "侧栏焦点环" }
+    },
+    "panel": {
+      "default": { "$type": "color", "$value": "{color.paper.100}", "$description": "内嵌面板/表头底（css 变量名沿用 --surface）" },
+      "foreground": { "$type": "color", "$value": "{color.foreground.default}", "$description": "内嵌面板文本（dark 转灰档）" }
+    },
+    "code": {
+      "default": { "$type": "color", "$value": "{color.panel.default}", "$description": "代码块底" },
+      "foreground": { "$type": "color", "$value": "{color.panel.foreground}", "$description": "代码块文本" },
+      "highlight": { "$type": "color", "$value": "{color.paper.300}", "$description": "当前行高亮底" },
+      "number": { "$type": "color", "$value": "{color.graphite.600}", "$description": "行号" }
+    },
+    "selection": {
+      "default": { "$type": "color", "$value": "{color.graphite.900}", "$description": "文本选区底" },
+      "foreground": { "$type": "color", "$value": "{color.paper.50}", "$description": "选区文字" }
+    }
+  }
+}

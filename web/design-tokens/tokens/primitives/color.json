@@ -1,0 +1,62 @@
+{
+  "$description": "原始色阶（ink ramp，unslop「夜班控制室」标定）。命名只描述色相与档位、不含用途语义；semantic 层负责决定谁用哪一档。数值与迁移前 index.css 逐字节一致。",
+  "color": {
+    "paper": {
+      "$description": "light 模式表面系列：越小编号越亮",
+      "0": { "$type": "color", "$value": "#ffffff" },
+      "50": { "$type": "color", "$value": "#f5f7fa" },
+      "100": { "$type": "color", "$value": "#f0f3f7" },
+      "150": { "$type": "color", "$value": "#eef1f6" },
+      "200": { "$type": "color", "$value": "#eceff4" },
+      "300": { "$type": "color", "$value": "#e7ebf1" },
+      "400": { "$type": "color", "$value": "#e3e8ef" }
+    },
+    "night": {
+      "$description": "dark 模式表面系列：越小编号越深（四级：sidebar/page/card/raised）",
+      "0": { "$type": "color", "$value": "#07080d" },
+      "50": { "$type": "color", "$value": "#0b0d14" },
+      "100": { "$type": "color", "$value": "#0e1119" },
+      "200": { "$type": "color", "$value": "#11141c" },
+      "300": { "$type": "color", "$value": "#1a1e28" },
+      "400": { "$type": "color", "$value": "#232936" }
+    },
+    "graphite": {
+      "$description": "中性文字与灰阶（两模式共用一组冷调中性档）",
+      "100": { "$type": "color", "$value": "#eef0f5" },
+      "200": { "$type": "color", "$value": "#e3e6ee" },
+      "400": { "$type": "color", "$value": "#a3a9b8" },
+      "450": { "$type": "color", "$value": "#98a1b0" },
+      "500": { "$type": "color", "$value": "#8a93a6" },
+      "550": { "$type": "color", "$value": "#7a8296" },
+      "570": { "$type": "color", "$value": "#6f7891", "$description": "dark chart-5 独立标定档（不在 ring ramp 上）" },
+      "600": { "$type": "color", "$value": "#6b7487" },
+      "650": { "$type": "color", "$value": "#646d7f" },
+      "700": { "$type": "color", "$value": "#5b6475" },
+      "900": { "$type": "color", "$value": "#111827" },
+      "900-a08": { "$type": "color", "$value": "#11182714" },
+      "900-a12": { "$type": "color", "$value": "#1118271f" },
+      "100-a08": { "$type": "color", "$value": "#eef0f514" },
+      "100-a12": { "$type": "color", "$value": "#eef0f51f" }
+    },
+    "green": {
+      "700": { "$type": "color", "$value": "#166534", "$description": "light positive 文字档：对白底达 WCAG AA（600 只有 3.3:1）" },
+      "400": { "$type": "color", "$value": "#4cc38a", "$description": "dark positive" }
+    },
+    "red": {
+      "500": { "$type": "color", "$value": "#dc2626", "$description": "light 操作按钮底（destructive）" },
+      "600": { "$type": "color", "$value": "#b91c1c", "$description": "light negative 文字" },
+      "650": { "$type": "color", "$value": "#a4161a", "$description": "light destructive-on-primary" },
+      "700": { "$type": "color", "$value": "#e5484d", "$description": "dark negative/destructive" },
+      "750": { "$type": "color", "$value": "#f0565b", "$description": "dark destructive-on-primary" }
+    },
+    "amber": {
+      "300": { "$type": "color", "$value": "#d0a215", "$description": "dark caution 文字" },
+      "400": { "$type": "color", "$value": "#a1620a", "$description": "dark caution 图表填充（大块降饱和档）" },
+      "800": { "$type": "color", "$value": "#92400e", "$description": "light caution 文字" },
+      "850": { "$type": "color", "$value": "#8a3f07", "$description": "light caution-on-primary" }
+    },
+    "blue": {
+      "600": { "$type": "color", "$value": "#1447e6", "$description": "品牌蓝：仅 dark sidebar-primary（当前集群标记）保留" }
+    }
+  }
+}

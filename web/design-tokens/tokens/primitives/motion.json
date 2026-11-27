@@ -1,0 +1,9 @@
+{
+  "$description": "唯一缓动对（unslop 标定）：enter/强动画走 strong（指数 ease-out），位移走 in-out。此前两处 var 引用悬空导致浮层缓动整链静默失效，此处为唯一事实来源。",
+  "motion": {
+    "easing": {
+      "strong": { "$type": "other", "$value": "cubic-bezier(0.23, 1, 0.32, 1)" },
+      "in-out": { "$type": "other", "$value": "cubic-bezier(0.77, 0, 0.175, 1)" }
+    }
+  }
+}

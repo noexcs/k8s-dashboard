@@ -93,6 +93,8 @@ export const STRINGS_AI: Record<string, Entry> = {
   'ai:unnamedSession': { zh: '（未命名会话）', en: '(Unnamed session)' },
   'ai:currentSession': { zh: ' · 当前会话', en: ' · current' },
   'ai:newSession': { zh: '新会话', en: 'New session' },
+  'ai:modeFloat': { zh: '悬浮（可拖动 / 缩放）', en: 'Float (drag & resize)' },
+  'ai:modeDock': { zh: '停靠回右侧', en: 'Dock back to the right' },
   'ai:restoringSession': { zh: '恢复会话…', en: 'Restoring session…' },
   // ---- 加载 / 空态 ----
   'ai:loadingModels': { zh: '加载模型列表…', en: 'Loading models…' },

@@ -23,7 +23,10 @@ const read = (cluster: string): Prefs => {
     const isKey = (s: string): s is NavGroupKey => (DEFAULT_ORDER as string[]).includes(s)
     const stored = (p.order ?? []).filter(isKey)
     const missing = DEFAULT_ORDER.filter(s => s !== 'crd' && !stored.includes(s))
-    const order = [...stored, ...missing, ...(p.order?.includes('crd') || !p.order ? (['crd'] as NavGroupKey[]) : [])]
+    // order 合并：注册表新增分组（或旧数据缺项）追加到 'crd' 前。
+    // stored 已经含 crd（isKey 放行），只有「存过 order 但没有 crd」的旧数据才需要补一个；
+    // 条件写反会让每次保存后的 order（必含 crd）再叠一个 crd —— 重复 key、dirty 恒真。
+    const order = [...stored, ...missing, ...(!p.order || !p.order.includes('crd') ? (['crd'] as NavGroupKey[]) : [])]
     return { hidden: p.hidden ?? [], order }
   } catch {
     return { hidden: [], order: DEFAULT_ORDER }
@@ -81,15 +84,19 @@ export function useNavPrefs(cluster: string | undefined) {
     [c],
   )
 
-  const move = useCallback(
-    (section: NavGroupKey, dir: -1 | 1) => {
-      if (!c) return
+  // 拖拽重排：把 section 挪到 target 旁（向下拖=落在 target 后，向上拖=落在 target 前）。
+  // 用 section 而非 index 定位：UI 列表过滤掉了空分组，两个序号空间不一致
+  const moveTo = useCallback(
+    (section: NavGroupKey, target: NavGroupKey) => {
+      if (!c || section === target) return
       const cur = store(c).v
-      const i = cur.order.indexOf(section)
-      const j = i + dir
-      if (i < 0 || j < 0 || j >= cur.order.length) return
       const order = [...cur.order]
-      ;[order[i], order[j]] = [order[j], order[i]]
+      const from = order.indexOf(section)
+      const to0 = order.indexOf(target)
+      if (from < 0 || to0 < 0) return
+      order.splice(from, 1)
+      const to = order.indexOf(target)
+      order.splice(from < to0 ? to + 1 : to, 0, section)
       write(c, { ...cur, order })
     },
     [c],
@@ -104,7 +111,7 @@ export function useNavPrefs(cluster: string | undefined) {
     /** 按持久化顺序排 section（含 'crd'）；未知条目丢弃，缺失由 read 合并补齐 */
     orderedSections: prefs.order.filter(s => s === 'crd' || NAV_SECTIONS.some(n => n.section === s)),
     setHidden,
-    move,
+    moveTo,
     reset,
     dirty: prefs.hidden.length > 0 || prefs.order.join() !== DEFAULT_ORDER.join(),
   }

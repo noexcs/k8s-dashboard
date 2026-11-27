@@ -1,0 +1,57 @@
+/* ============================================================
+ * shadcn Adapter：组件消费的 CSS 变量 → design token 的映射层。
+ * 铁律：只映射，不定义值——出现任何字面色值/尺寸即违规
+ * （design-tokens/tests/adapter.test.mjs 逐条检查形如 var(--dt-*)）。
+ * 明暗切换由 dist/css/base.css 的 :root / .dark 两块 --dt-* 取值承担，
+ * 此文件两模式共用一份。
+ * ============================================================ */
+
+:root {
+  --radius: var(--dt-radius-base);
+  --background: var(--dt-color-background-default);
+  --foreground: var(--dt-color-foreground-default);
+  --card: var(--dt-color-surface-card);
+  --card-foreground: var(--dt-color-surface-card-foreground);
+  --popover: var(--dt-color-surface-popover);
+  --popover-foreground: var(--dt-color-surface-popover-foreground);
+  --primary: var(--dt-color-primary-default);
+  --primary-foreground: var(--dt-color-primary-foreground);
+  --secondary: var(--dt-color-secondary-default);
+  --secondary-foreground: var(--dt-color-secondary-foreground);
+  --muted: var(--dt-color-muted-default);
+  --muted-foreground: var(--dt-color-muted-foreground);
+  --accent: var(--dt-color-accent-default);
+  --accent-foreground: var(--dt-color-accent-foreground);
+  --positive: var(--dt-color-feedback-positive);
+  --negative: var(--dt-color-feedback-negative);
+  --caution: var(--dt-color-feedback-caution);
+  --caution-on-primary: var(--dt-color-feedback-caution-on-primary);
+  --ink-on-muted: var(--dt-color-feedback-on-muted);
+  --destructive: var(--dt-color-feedback-destructive);
+  --destructive-on-primary: var(--dt-color-feedback-destructive-on-primary);
+  --destructive-foreground: var(--dt-color-feedback-destructive-foreground);
+  --border: var(--dt-color-border-default);
+  --input: var(--dt-color-border-input);
+  --ring: var(--dt-color-border-ring);
+  --chart-1: var(--dt-color-chart-1);
+  --chart-2: var(--dt-color-chart-2);
+  --chart-3: var(--dt-color-chart-3);
+  --chart-4: var(--dt-color-chart-4);
+  --chart-5: var(--dt-color-chart-5);
+  --sidebar: var(--dt-color-navigation-sidebar);
+  --sidebar-foreground: var(--dt-color-navigation-sidebar-foreground);
+  --sidebar-primary: var(--dt-color-navigation-sidebar-primary);
+  --sidebar-primary-foreground: var(--dt-color-navigation-sidebar-primary-foreground);
+  --sidebar-accent: var(--dt-color-navigation-sidebar-accent);
+  --sidebar-accent-foreground: var(--dt-color-navigation-sidebar-accent-foreground);
+  --sidebar-border: var(--dt-color-navigation-sidebar-border);
+  --sidebar-ring: var(--dt-color-navigation-sidebar-ring);
+  --surface: var(--dt-color-panel-default);
+  --surface-foreground: var(--dt-color-panel-foreground);
+  --code: var(--dt-color-code-default);
+  --code-foreground: var(--dt-color-code-foreground);
+  --code-highlight: var(--dt-color-code-highlight);
+  --code-number: var(--dt-color-code-number);
+  --selection: var(--dt-color-selection-default);
+  --selection-foreground: var(--dt-color-selection-foreground);
+}

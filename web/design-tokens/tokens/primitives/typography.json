@@ -1,0 +1,10 @@
+{
+  "$description": "字体栈（fontsource 变量字体已随前端打包）。mono 是本页主数字/标识符字体（h1/镜像/env/表格使用率极高），出厂 ui-monospace 跨机不一致。console 栈=整页等宽（控制台主题用）。",
+  "typography": {
+    "family": {
+      "sans": { "$type": "other", "$value": "\"Geist Variable\", ui-sans-serif, system-ui, sans-serif" },
+      "mono": { "$type": "other", "$value": "\"Geist Mono Variable\", ui-monospace, SFMono-Regular, Menlo, monospace" },
+      "console": { "$type": "other", "$value": "\"Geist Mono Variable\", ui-monospace, SFMono-Regular, Menlo, monospace" }
+    }
+  }
+}

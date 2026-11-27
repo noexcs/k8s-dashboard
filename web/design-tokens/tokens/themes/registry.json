@@ -1,0 +1,66 @@
+{
+  "default": "ink",
+  "themes": [
+    {
+      "id": "ink",
+      "name": "ink · 夜班控制室",
+      "note": "unslop direction：中性色向蓝墨微染，语义色仅承载含义",
+      "radius": "0.625rem",
+      "layers": {
+        "light": "light",
+        "dark": "dark"
+      }
+    },
+    {
+      "id": "sky",
+      "name": "Sky",
+      "note": "shadcn sky 预设 accent + Radix sky 纸底：晴白纸面 + 浅蓝导航",
+      "radius": "0.625rem",
+      "layers": {
+        "light": "sky.light",
+        "dark": "sky.dark"
+      }
+    },
+    {
+      "id": "emerald",
+      "name": "Emerald",
+      "note": "shadcn emerald 预设 accent + Radix jade 形态：深绿导航 + 锐角 + 密排",
+      "radius": "0.375rem",
+      "layers": {
+        "light": "emerald.light",
+        "dark": "emerald.dark"
+      }
+    },
+    {
+      "id": "orange",
+      "name": "Orange",
+      "note": "shadcn orange 预设 accent + Radix amber 奶油纸感：沙底 + 深棕导航 + 柔圆 + 暖投影",
+      "radius": "1rem",
+      "layers": {
+        "light": "orange.light",
+        "dark": "orange.dark"
+      }
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "note": "shadcn rose 预设 accent + Radix crimson 全色阶：玫红纸底 + 酒红导航",
+      "radius": "0.625rem",
+      "layers": {
+        "light": "rose.light",
+        "dark": "rose.dark"
+      }
+    },
+    {
+      "id": "indigo",
+      "name": "Indigo",
+      "note": "shadcn indigo 预设 accent + Radix indigo 全色阶：靛蓝纸底 + 深靛导航",
+      "radius": "0.625rem",
+      "layers": {
+        "light": "indigo.light",
+        "dark": "indigo.dark"
+      }
+    }
+  ],
+  "$description": "主题注册表：主题清单与基准圆角的唯一来源；dist/json/themes.json 由此生成。新增主题 = 加 tokens/themes/<id>.light.json + <id>.dark.json 增量层并在此登记。"
+}

@@ -1,0 +1,21 @@
+{
+  "$description": "投影档位。tw-*=Tailwind v4 内置 shadow-{sm,md,lg,xl} 取值照抄（默认主题零漂移，color-mix oklab 10% 黑 ≡ rgb 0.1 alpha）；none=无投影；warm/lilac=主题染色投影（stone 暖褐 / mauve 紫灰）。",
+  "shadow": {
+    "none": { "$type": "other", "$value": "none" },
+    "tw-xs": { "$type": "other", "$value": "0 1px 2px 0 rgb(0 0 0 / 0.05)" },
+    "tw-sm": { "$type": "other", "$value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)" },
+    "tw-md": { "$type": "other", "$value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" },
+    "tw-lg": { "$type": "other", "$value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)" },
+    "tw-xl": { "$type": "other", "$value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" },
+    "warm-xs": { "$type": "other", "$value": "0 1px 2px 0 rgb(101 74 40 / 0.07)" },
+    "warm-sm": { "$type": "other", "$value": "0 1px 3px 0 rgb(101 74 40 / 0.09), 0 1px 2px -1px rgb(101 74 40 / 0.06)" },
+    "warm-md": { "$type": "other", "$value": "0 4px 10px -1px rgb(101 74 40 / 0.10), 0 2px 6px -2px rgb(101 74 40 / 0.07)" },
+    "warm-lg": { "$type": "other", "$value": "0 12px 22px -3px rgb(101 74 40 / 0.12), 0 4px 8px -4px rgb(101 74 40 / 0.08)" },
+    "warm-xl": { "$type": "other", "$value": "0 22px 34px -5px rgb(101 74 40 / 0.13), 0 8px 12px -6px rgb(101 74 40 / 0.09)" },
+    "lilac-xs": { "$type": "other", "$value": "0 1px 2px 0 rgb(101 84 133 / 0.08)" },
+    "lilac-sm": { "$type": "other", "$value": "0 1px 3px 0 rgb(101 84 133 / 0.10), 0 1px 2px -1px rgb(101 84 133 / 0.07)" },
+    "lilac-md": { "$type": "other", "$value": "0 4px 8px -1px rgb(101 84 133 / 0.12), 0 2px 4px -2px rgb(101 84 133 / 0.08)" },
+    "lilac-lg": { "$type": "other", "$value": "0 10px 18px -3px rgb(101 84 133 / 0.14), 0 4px 8px -4px rgb(101 84 133 / 0.09)" },
+    "lilac-xl": { "$type": "other", "$value": "0 20px 28px -5px rgb(101 84 133 / 0.15), 0 8px 12px -6px rgb(101 84 133 / 0.10)" }
+  }
+}

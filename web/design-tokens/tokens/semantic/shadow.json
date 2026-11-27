@@ -1,0 +1,10 @@
+{
+  "$description": "语义投影档：Tailwind shadow-{sm,md,lg,xl} utility 经 @theme 重定义到本组 token（utility 名不动，主题只换档位内容）。默认=TW4 内置值（零漂移），主题可平涂化/染色。",
+  "shadow": {
+    "xs": { "$type": "other", "$value": "{shadow.tw-xs}", "$description": "仪表盘卡片等最轻浮起（TW4 shadow-xs）" },
+    "sm": { "$type": "other", "$value": "{shadow.tw-sm}", "$description": "卡片/触发器等静置浮起" },
+    "md": { "$type": "other", "$value": "{shadow.tw-md}", "$description": "下拉/浮层" },
+    "lg": { "$type": "other", "$value": "{shadow.tw-lg}", "$description": "对话框级" },
+    "xl": { "$type": "other", "$value": "{shadow.tw-xl}", "$description": "最高层级" }
+  }
+}

@@ -35,7 +35,10 @@ export function ClusterSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full justify-between">
+        <Button
+          variant="outline"
+          className="w-full justify-between border-sidebar-border bg-transparent text-sidebar-foreground/90 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
           <span className="truncate">{cluster ?? t('core:selectCluster')}</span>
           <ChevronsUpDown className="size-3.5 opacity-50" />
         </Button>

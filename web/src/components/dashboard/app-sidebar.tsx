@@ -145,13 +145,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        {/* 左下角纵向：集群选择在上、设置在下（命名空间选择已删除，ns 由 URL 决定） */}
+        {/* 左下角纵向：集群选择在上、设置在下（配色主题选择已并入设置-外观；ns 由 URL 决定） */}
         <div className="flex flex-col gap-2 px-1">
           <ClusterSwitcher />
           <NavLink
             to={`/c/${c}/settings`}
             aria-label={t('ui:settings')}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border px-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-sidebar-border px-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <Settings className="size-3.5" />
             {t('ui:settings')}

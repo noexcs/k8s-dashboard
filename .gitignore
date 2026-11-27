@@ -25,3 +25,6 @@ web/dist/
 .code-review-graph/
 *.tsbuildinfo
 .codex
+
+# design token 产物（随时可 tokens:build 重建）
+web/design-tokens/dist/

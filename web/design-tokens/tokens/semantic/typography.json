@@ -1,0 +1,7 @@
+{
+  "$description": "语义字体：ui=界面正文栈、code=等宽标识符栈。主题可整体换 ui 栈（如整页等宽），组件只写 font-sans/font-mono。",
+  "font": {
+    "ui": { "$type": "other", "$value": "{typography.family.sans}", "$description": "界面正文（@theme --font-sans 映射此 token）" },
+    "code": { "$type": "other", "$value": "{typography.family.mono}", "$description": "代码/标识符/数字（@theme --font-mono 映射此 token）" }
+  }
+}

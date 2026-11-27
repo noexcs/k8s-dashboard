@@ -11,7 +11,7 @@ import { useT } from "@/i18n"
 // rounded-2xl / ring-1 ring-foreground/5(代替 border) / 双主题 bg-muted / padding px-4。
 // 注意: shadcn CLI registry 版较旧(rounded-lg + border-input), 不要直接 --overwrite 覆盖本文件。
 const codeBlockVariants = cva(
-  "group/code-block relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl text-sm has-[>[data-slot=code-block-content]:focus-visible]:ring-3 has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/30 data-[size=sm]:rounded-xl data-[size=sm]:text-[13px]",
+  "group/code-block relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl text-sm has-[>[data-slot=code-block-content]:focus-visible]:ring-3 has-[>[data-slot=code-block-content]:focus-visible]:ring-ring/30 data-[size=sm]:rounded-xl data-[size=sm]:text-[13px]",
   {
     variants: {
       variant: {

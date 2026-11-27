@@ -2,144 +2,37 @@
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
+/* 取值唯一来源 = design-tokens/tokens/**（npm run tokens:build 产出，勿手改）；
+   下面的 :root/.dark 与 adapter 只允许 var() 映射，不允许字面值。 */
+@import "../design-tokens/dist/css/index.css";
+@import "./styles/shadcn-adapter.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* ============================================================
- * 主题：ink 冷调中性 ramp（unslop direction「夜班控制室」）。
- * 世界=终端与监控盘 → 中性色向蓝墨微染（饱和度极低，任何表面
- * 都不读作彩色）；语义色三档 positive/negative/caution 用
- * unslop 标定值，仅承载含义；强调色 = primary 单点。
- * 原 shadcn neutral 默认主题已整体替换（2026-11-25）。
- * ============================================================ */
-
+/* 明暗由 .dark 类决定（useTheme）；取值全部来自 token 产物的 :root/.dark 两块 */
 :root {
   color-scheme: light;
-  --radius: 0.625rem;
-  /* ink ramp（light） */
-  --background: #f5f7fa;
-  --foreground: #111827;
-  --card: #ffffff;
-  --card-foreground: #111827;
-  --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #111827;
-  --primary-foreground: #f5f7fa;
-  --secondary: #eceff4;
-  --secondary-foreground: #111827;
-  --muted: #eceff4;
-  --muted-foreground: #646d7f;
-  --accent: #eceff4;
-  --accent-foreground: #111827;
-  /* 语义色（light 标定值；positive 取 green-700：作文字色对白底
-     #fff/#f5f7fa 达 WCAG AA 4.5:1，green-600 只有 3.3:1） */
-  --positive: #166534;
-  --negative: #b91c1c;
-  --caution: #92400e;
-  --caution-on-primary: #8a3f07;
-  --ink-on-muted: #5b6475;
-  --destructive: #dc2626;
-  --destructive-on-primary: #a4161a;
-  --destructive-foreground: #ffffff;
-  /* 发丝线 = 主文本色 8% */
-  --border: #11182714;
-  --input: #1118271f;
-  --ring: #6b7487;
-  /* 图表：语义优先——Running=positive、Warning 态=caution、
-     Failed=negative；纯分类序列用中性阶（ink ramp），accent 不撒。
-     chart-5 保留品牌蓝，仅 sidebar-primary 的"当前集群"标记用。 */
-  --chart-1: var(--positive);
-  /* 柱填充=muted ramp 但按图形对象单独标定(审计 med):此前=muted-foreground
-     #646d7f,与相邻 amber 堆叠段(#92400e)亮度比仅 1.36:1,缺口段「融」进灰柱。
-     提到 ramp 上一档 #98a1b0(亮度差≈2.7 + 强色相分层);序列线(mem)已改走
-     --muted-foreground 文本墨档,不再借 chart-2,亮灰不伤线条对比 */
-  --chart-2: #98a1b0;
-  --chart-3: var(--caution);
-  --chart-4: var(--negative);
-  --chart-5: #8a93a6;
-  --sidebar: #eef1f6;
-  --sidebar-foreground: #111827;
-  --sidebar-primary: #111827;
-  --sidebar-primary-foreground: #f5f7fa;
-  --sidebar-accent: #e3e8ef;
-  --sidebar-accent-foreground: #111827;
-  --sidebar-border: #11182714;
-  --sidebar-ring: #6b7487;
-  --surface: #f0f3f7;
-  --surface-foreground: var(--foreground);
-  --code: var(--surface);
-  --code-foreground: var(--surface-foreground);
-  --code-highlight: #e7ebf1;
-  --code-number: #6b7487;
-  --selection: #111827;
-  --selection-foreground: #f5f7fa;
 }
 
 .dark {
   color-scheme: dark;
-  /* ink ramp（dark）：deepest sidebar / page / card / raised 四级 */
-  --background: #0b0d14;
-  --foreground: #eef0f5;
-  --card: #11141c;
-  --card-foreground: #eef0f5;
-  --popover: #11141c;
-  --popover-foreground: #eef0f5;
-  --primary: #e3e6ee;
-  --primary-foreground: #11141c;
-  --secondary: #1a1e28;
-  --secondary-foreground: #eef0f5;
-  --muted: #1a1e28;
-  --muted-foreground: #a3a9b8;
-  --accent: #232936;
-  --accent-foreground: #eef0f5;
-  /* 语义色（dark 标定值） */
-  --positive: #4cc38a;
-  --negative: #e5484d;
-  --caution: #d0a215;
-  --caution-on-primary: var(--caution);
-  --ink-on-muted: var(--muted-foreground);
-  --destructive: #e5484d;
-  --destructive-on-primary: #f0565b;
-  --destructive-foreground: #ffffff;
-  /* 发丝线 = 主文本色 8% */
-  --border: #eef0f514;
-  --input: #eef0f51f;
-  --ring: #7a8296;
-  /* 图表：同 light 的语义映射，dark 用对应标定 */
-  --chart-1: var(--positive);
-  --chart-2: #a3a9b8;
-  /* 柱/面积填充用降饱和琥珀:文字用 caution(#d0a215)在大块填充上刺眼,
-     语义色要压进调色板;文本色不动,仅图表独立 */
-  --chart-3: #a1620a;
-  --chart-4: var(--negative);
-  --chart-5: #6f7891;
-  --sidebar: #07080d;
-  --sidebar-foreground: #eef0f5;
-  --sidebar-primary: #1447e6;
-  --sidebar-primary-foreground: #f5f7fa;
-  --sidebar-accent: #1a1e28;
-  --sidebar-accent-foreground: #eef0f5;
-  --sidebar-border: #eef0f514;
-  --sidebar-ring: #7a8296;
-  --surface: #0e1119;
-  --surface-foreground: #a3a9b8;
-  --code: var(--surface);
-  --code-foreground: var(--surface-foreground);
-  --code-highlight: #1a1e28;
-  --code-number: #7a8296;
-  --selection: #e3e6ee;
-  --selection-foreground: #11141c;
 }
 
 @theme inline {
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  /* 本页主数字/标识符字体：mono 使用率极高（h1/镜像/env/表格），出厂 ui-monospace
-     跨机不一致——Geist 官方 mono 伙伴，与 sans 同人格。 */
-  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* 唯一缓动对（unslop tokens）：enter/强动画用 strong（指数 ease-out），
-     位移用 in-out。此前两处 var 引用悬空（token 从未定义）→ flash/浮层缓动整链静默失效。 */
-  --ease-strong: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --font-sans: var(--dt-font-ui);
+  /* 本页主数字/标识符字体：mono 使用率极高（h1/镜像/env/表格），栈见 token font.code */
+  --font-mono: var(--dt-font-code);
+  /* 唯一缓动对（strong=enter/强动画，in-out=位移），取值见 token motion.easing */
+  --ease-strong: var(--dt-motion-easing-strong);
+  --ease-in-out: var(--dt-motion-easing-in-out);
+  /* 密度与投影：utility 名（padding/shadow 系列）不动，主题经 token 换档位内容；
+     默认档=Tailwind v4 内置值照抄（零漂移），覆盖见 themes 增量层 */
+  --spacing: var(--dt-spacing-scale-default);
+  --shadow-xs: var(--dt-shadow-xs);
+  --shadow-sm: var(--dt-shadow-sm);
+  --shadow-md: var(--dt-shadow-md);
+  --shadow-lg: var(--dt-shadow-lg);
+  --shadow-xl: var(--dt-shadow-xl);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -171,10 +64,16 @@
   --color-code-foreground: var(--code-foreground);
   --color-selection: var(--selection);
   --color-selection-foreground: var(--selection-foreground);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: max(0px, calc(var(--radius) - 4px));
+  --radius-md: max(0px, calc(var(--radius) - 2px));
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* xl 用比例式而非 +4px 加法式：滑杆 0（直角模式）时卡片/对话框/大容器必须归 0，
+     加法式会残留 4px「看起来还是有点弧度」。默认 5 → 9px 与旧值一致 */
+  --radius-xl: calc(var(--radius) * 1.8);
+  /* 字重三档指向运行时可覆写的 --dt-w-*（外观设置「字重」），默认 400/500/600 */
+  --font-weight-normal: var(--dt-w-normal, 400);
+  --font-weight-medium: var(--dt-w-medium, 500);
+  --font-weight-semibold: var(--dt-w-semibold, 600);
 }
 
 @theme inline {
@@ -194,6 +93,8 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* 基线字重也随「字重」档位走（多数正文无任何 weight class、只继承 body） */
+    font-weight: var(--dt-w-normal, 400);
   }
   /* 选区主题化：--selection token 落地（此前定义了从未生效） */
   ::selection {
@@ -301,9 +202,18 @@
   --shimmer-image: none;
 }
 
-/* ---- [A] cn-toast：sonner toast 圆角 ---- */
-.cn-toast {
-  @apply rounded-2xl;
+/* ---- [A] cn-toast：sonner toast 圆角。
+   旧版 @apply rounded-2xl 是死代码（sonner 注入的 [data-sonner-toast][data-styled]
+   特异性更高，永远压过单类）；改覆写 sonner 自己的 --border-radius 变量。
+   toast 本体经 style 已随 --radius（=滑杆）联动，这里与 --radius-xl 同比例式（0 档归零） ---- */
+[data-sonner-toast].cn-toast {
+  --border-radius: calc(var(--radius) * 1.8);
+}
+
+/* ---- [R] 裸 rounded 类：Tailwind v4 里它是固定 .25rem，不走 --radius 滑杆，
+   直角模式（0 档）下成为漏网弧度（表格链接/图标钮等 29 处）；并入 --radius-md 档位 ---- */
+.rounded {
+  border-radius: max(0px, calc(var(--radius) - 2px));
 }
 
 /* ---- [B] cn-font-heading：标题字族。
@@ -837,6 +747,10 @@
   .animate-out {
     animation-duration: 120ms !important;
   }
+  /* 设置页瓦片/提示同款 opacity 淡入：同策略保留 120ms，别硬弹 */
+  .motion-fade {
+    transition-duration: 120ms !important;
+  }
   [data-slot='tabs-indicator'] {
     transition-duration: 100ms !important;
   }
@@ -856,7 +770,7 @@
   content: '';
   position: absolute;
   inset: -2px;
-  border-radius: 6px;
+  border-radius: calc(var(--dt-radius-base, 10px) * 1.8);
   background: currentColor;
   opacity: 0;
   pointer-events: none;

@@ -1,0 +1,10 @@
+{
+  "$description": "间距密度档（Tailwind v4 --spacing 乘子基底）：dense=控制台紧凑、base=现行 .25rem、soft=宽松呼吸。",
+  "spacing": {
+    "scale": {
+      "base": { "$type": "dimension", "$value": "0.25rem" },
+      "dense": { "$type": "dimension", "$value": "0.23rem" },
+      "soft": { "$type": "dimension", "$value": "0.265rem" }
+    }
+  }
+}

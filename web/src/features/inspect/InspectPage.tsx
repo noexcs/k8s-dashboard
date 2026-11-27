@@ -868,7 +868,7 @@ function BatchAckBtn({ n, onBatch }: { n: number; onBatch: (note: string) => voi
           maxLength={200}
           className="h-7 text-xs"
           onKeyDown={(ev) => {
-            if (ev.key === 'Enter') {
+            if (ev.key === 'Enter' && !ev.nativeEvent.isComposing) {
               onBatch(note.trim())
               setNote('')
               setOpen(false)
@@ -937,7 +937,7 @@ function DispBadge({ state, note, ts, viewOld, autoOpen, onAutoOpenDone, onNote,
           placeholder={t('inspect:notePh')}
           maxLength={200}
           className="h-7 text-xs"
-          onKeyDown={(ev) => { if (ev.key === 'Enter') close(() => onNote(text.trim())) }}
+          onKeyDown={(ev) => { if (ev.key === 'Enter' && !ev.nativeEvent.isComposing) close(() => onNote(text.trim())) }}
         />
         {note && <div className="mt-1 text-[11px] text-muted-foreground">{t('inspect:noteClearHint')}</div>}
         <div className="mt-3 flex justify-between">

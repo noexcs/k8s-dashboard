@@ -156,7 +156,7 @@ function TabsLineIndicator() {
       data-slot="tabs-indicator"
       className={cn(
         "pointer-events-none absolute left-0 -bottom-px h-0.5 w-px origin-left bg-foreground opacity-0",
-        "transition-transform duration-200 ease-in-out motion-reduce:transition-[opacity] motion-reduce:duration-100",
+        "transition-transform duration-200 ease-[var(--ease-in-out)] motion-reduce:transition-[opacity] motion-reduce:duration-100",
         "group-data-[orientation=vertical]/tabs:top-0 group-data-[orientation=vertical]/tabs:-right-1 group-data-[orientation=vertical]/tabs:bottom-auto group-data-[orientation=vertical]/tabs:h-px group-data-[orientation=vertical]/tabs:w-0.5 group-data-[orientation=vertical]/tabs:origin-top"
       )}
     />
@@ -188,7 +188,7 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 text-sm outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150", className)}
+      className={cn("flex-1 text-sm outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150 data-[state=active]:ease-out", className)}
       {...props}
     />
   )

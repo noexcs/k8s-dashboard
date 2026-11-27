@@ -368,7 +368,7 @@ export function CreateResourceDialog({
             autoFocus
             value={saveFor?.name ?? ''}
             onChange={e => setSaveFor(s => (s ? { ...s, name: e.target.value } : s))}
-            onKeyDown={e => e.key === 'Enter' && confirmSave()}
+            onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && confirmSave()}
             placeholder={t('tmpl:saveName')}
           />
           <DialogFooter>

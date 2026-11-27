@@ -1,0 +1,133 @@
+{
+  "color": {
+    "background": {
+      "default": {
+        "$type": "color",
+        "$value": "#191114"
+      }
+    },
+    "foreground": {
+      "default": {
+        "$type": "color",
+        "$value": "#fdd3e8"
+      }
+    },
+    "surface": {
+      "card": {
+        "$type": "color",
+        "$value": "#381525"
+      },
+      "card-foreground": {
+        "$type": "color",
+        "$value": "#fdd3e8"
+      },
+      "popover": {
+        "$type": "color",
+        "$value": "#4d122f"
+      },
+      "popover-foreground": {
+        "$type": "color",
+        "$value": "#fdd3e8"
+      }
+    },
+    "primary": {
+      "default": {
+        "$type": "color",
+        "$value": "oklch(0.455 0.188 13.697)"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "oklch(0.969 0.015 12.422)"
+      }
+    },
+    "secondary": {
+      "default": {
+        "$type": "color",
+        "$value": "oklch(0.274 0.006 286.033)"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "oklch(0.985 0 0)"
+      }
+    },
+    "muted": {
+      "default": {
+        "$type": "color",
+        "$value": "#381525"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#ff92ad"
+      }
+    },
+    "accent": {
+      "default": {
+        "$type": "color",
+        "$value": "#4d122f"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#fdd3e8"
+      }
+    },
+    "feedback": {
+      "destructive": {
+        "$type": "color",
+        "$value": "#e5484d"
+      },
+      "destructive-foreground": {
+        "$type": "color",
+        "$value": "#ffd1d9"
+      }
+    },
+    "border": {
+      "default": {
+        "$type": "color",
+        "$value": "#6d2545"
+      },
+      "input": {
+        "$type": "color",
+        "$value": "#873356"
+      },
+      "ring": {
+        "$type": "color",
+        "$value": "#b0436e"
+      }
+    },
+    "navigation": {
+      "sidebar": {
+        "$type": "color",
+        "$value": "#201318"
+      },
+      "sidebar-foreground": {
+        "$type": "color",
+        "$value": "#fdd3e8"
+      },
+      "sidebar-primary": {
+        "$type": "color",
+        "$value": "oklch(0.645 0.246 16.439)"
+      },
+      "sidebar-primary-foreground": {
+        "$type": "color",
+        "$value": "oklch(0.969 0.015 12.422)"
+      },
+      "sidebar-accent": {
+        "$type": "color",
+        "$value": "#5c1839"
+      },
+      "sidebar-accent-foreground": {
+        "$type": "color",
+        "$value": "#fdd3e8"
+      },
+      "sidebar-border": {
+        "$type": "color",
+        "$value": "#6d2545"
+      },
+      "sidebar-ring": {
+        "$type": "color",
+        "$value": "#b0436e"
+      }
+    }
+  },
+  "$description": "Cobalt 靛蓝控制室：Radix Colors v3 indigo 全色阶照抄（@radix-ui/colors），彩色纸底 + 深色导航（light）/彩色暗底（dark）；chart-*/状态色不随主题（图表语义优先）。"
+}

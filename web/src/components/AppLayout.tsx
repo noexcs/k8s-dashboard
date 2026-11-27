@@ -15,9 +15,11 @@ import { SiteHeader } from "@/components/dashboard/site-header"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/sonner"
-import { t } from "@/i18n"
+import { useT } from "@/i18n"
 
 export function AppLayout() {
+  // 模块级 t 不触发本组件重渲染：切语言后 skip link 会残留旧语言（子组件各自订阅所以侧栏正常）
+  const t = useT()
   const { cluster } = useParams()
   const location = useLocation()
 
@@ -62,12 +64,15 @@ export function AppLayout() {
             </div>
           </div>
         </SidebarInset>
+        {/* 全局 AI 聊天：在 SidebarProvider 行内,与 SidebarInset 平级——xl+ dock 为布局内真列,
+            挤压内容区而非遮盖;窄屏退回 fixed 浮层(dock 组件内断点自理)。
+            /ai 整页与 FAB 双实例会各开各的会话,故在 /ai 页隐藏;精确匹配整页路由:
+            endsWith 会误伤名为 ai 的资源页(ns ai / Deployment ai 是高频命名),
+            那些页面的「问 AI」按钮会因 Fab 卸载而哑火; / 重定向期间无 cluster 不挂载 */}
+        {cluster && location.pathname !== `/c/${encodeURIComponent(cluster)}/ai` && (
+          <AiChatFab cluster={cluster} />
+        )}
       </SidebarProvider>
-
-      {/* 全局 AI 悬浮聊天（任何页面常驻，状态跨路由保持）；/ai 整页与 FAB 双实例会各开各的会话，故在 /ai 页隐藏；
-          精确匹配整页路由：endsWith 会误伤名为 ai 的资源页（ns ai / Deployment ai 是高频命名），
-          那些页面的「问 AI」按钮会因 Fab 卸载而哑火； / 重定向期间无 cluster 不挂载 */}
-      {cluster && location.pathname !== `/c/${encodeURIComponent(cluster)}/ai` && <AiChatFab cluster={cluster} />}
     </>
   )
 }

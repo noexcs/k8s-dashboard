@@ -1,0 +1,8 @@
+{
+  "$description": "语义间距密度：adapter/@theme 的 Tailwind --spacing 映射本 token，主题层可覆盖整页密度。",
+  "spacing": {
+    "scale": {
+      "default": { "$type": "dimension", "$value": "{spacing.scale.base}", "$description": "现行密度 .25rem；dense=控制台、soft=宽松" }
+    }
+  }
+}

@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 
 const srcDir = fileURLToPath(new URL('./src', import.meta.url))
+const tokensDir = fileURLToPath(new URL('./design-tokens/dist', import.meta.url))
 
 // 开发模式代理到容器后端（冒烟容器 :4467）；另起联调可用 K8S_PROXY_TARGET 覆盖
 const proxyTarget = process.env.K8S_PROXY_TARGET ?? 'http://127.0.0.1:4467'
@@ -13,6 +14,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': srcDir,
+      '@tokens': tokensDir,
     },
   },
   server: {

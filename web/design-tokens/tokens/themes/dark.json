@@ -1,0 +1,74 @@
+{
+  "$description": "ink 主题 dark 模式增量：deepest sidebar / page / card / raised 四级 surface；语义色 dark 标定；引用链 token（chart-1/3/4、code.*）随被引用者自动换档，无需重复覆盖。",
+  "color": {
+    "background": {
+      "default": { "$type": "color", "$value": "{color.night.50}" }
+    },
+    "foreground": {
+      "default": { "$type": "color", "$value": "{color.graphite.100}" }
+    },
+    "surface": {
+      "card": { "$type": "color", "$value": "{color.night.200}" },
+      "card-foreground": { "$type": "color", "$value": "{color.graphite.100}" },
+      "popover": { "$type": "color", "$value": "{color.night.200}" },
+      "popover-foreground": { "$type": "color", "$value": "{color.graphite.100}" }
+    },
+    "primary": {
+      "default": { "$type": "color", "$value": "{color.graphite.200}" },
+      "foreground": { "$type": "color", "$value": "{color.night.200}" }
+    },
+    "secondary": {
+      "default": { "$type": "color", "$value": "{color.night.300}" },
+      "foreground": { "$type": "color", "$value": "{color.graphite.100}" }
+    },
+    "muted": {
+      "default": { "$type": "color", "$value": "{color.night.300}" },
+      "foreground": { "$type": "color", "$value": "{color.graphite.400}" }
+    },
+    "accent": {
+      "default": { "$type": "color", "$value": "{color.night.400}" },
+      "foreground": { "$type": "color", "$value": "{color.graphite.100}" }
+    },
+    "feedback": {
+      "positive": { "$type": "color", "$value": "{color.green.400}" },
+      "negative": { "$type": "color", "$value": "{color.red.700}" },
+      "caution": { "$type": "color", "$value": "{color.amber.300}" },
+      "caution-on-primary": { "$type": "color", "$value": "{color.feedback.caution}" },
+      "on-muted": { "$type": "color", "$value": "{color.muted.foreground}" },
+      "destructive": { "$type": "color", "$value": "{color.feedback.negative}" },
+      "destructive-on-primary": { "$type": "color", "$value": "{color.red.750}" }
+    },
+    "border": {
+      "default": { "$type": "color", "$value": "{color.graphite.100-a08}" },
+      "input": { "$type": "color", "$value": "{color.graphite.100-a12}" },
+      "ring": { "$type": "color", "$value": "{color.graphite.550}" }
+    },
+    "chart": {
+      "2": { "$type": "color", "$value": "{color.graphite.400}" },
+      "3": { "$type": "color", "$value": "{color.amber.400}", "$description": "大块填充降饱和：文字档 caution 在暗底大色块上刺眼" },
+      "5": { "$type": "color", "$value": "{color.graphite.570}" }
+    },
+    "navigation": {
+      "sidebar": { "$type": "color", "$value": "{color.night.0}" },
+      "sidebar-foreground": { "$type": "color", "$value": "{color.graphite.100}" },
+      "sidebar-primary": { "$type": "color", "$value": "{color.blue.600}", "$description": "唯一品牌蓝落点：当前集群标记" },
+      "sidebar-primary-foreground": { "$type": "color", "$value": "{color.paper.50}" },
+      "sidebar-accent": { "$type": "color", "$value": "{color.night.300}" },
+      "sidebar-accent-foreground": { "$type": "color", "$value": "{color.graphite.100}" },
+      "sidebar-border": { "$type": "color", "$value": "{color.graphite.100-a08}" },
+      "sidebar-ring": { "$type": "color", "$value": "{color.graphite.550}" }
+    },
+    "panel": {
+      "default": { "$type": "color", "$value": "{color.night.100}" },
+      "foreground": { "$type": "color", "$value": "{color.graphite.400}" }
+    },
+    "code": {
+      "highlight": { "$type": "color", "$value": "{color.night.300}" },
+      "number": { "$type": "color", "$value": "{color.graphite.550}" }
+    },
+    "selection": {
+      "default": { "$type": "color", "$value": "{color.graphite.200}" },
+      "foreground": { "$type": "color", "$value": "{color.night.200}" }
+    }
+  }
+}

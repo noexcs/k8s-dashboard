@@ -1,0 +1,3 @@
+{
+  "$description": "组件槽位层（button.height.md 之类）：当前全部组件走 shadcn 语义类，无组件级覆盖需求，留空占位。新增组件 token 必须引用 semantic 层，不出现原始值。"
+}

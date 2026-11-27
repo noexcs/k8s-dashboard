@@ -116,8 +116,8 @@ function ThemeToggle() {
       type="button"
       onClick={() => {
         const next = resolved === 'dark' ? 'light' : 'dark'
-        // 主题整页淡切；不支持 VT 的浏览器走 ?.() 短路直接 setTheme（自然硬切）
-        document.startViewTransition?.(() => setTheme(next)) ?? setTheme(next)
+        // 淡切由 useTheme store 内的 startViewTransition 统一负责（H5 单一来源）
+        setTheme(next)
       }}
       title={resolved === 'dark' ? t('ui:switchToLight') : t('ui:switchToDark')}
       aria-label={t('ui:toggleTheme')}

@@ -6,6 +6,7 @@
 // 26 个工具（12 只读 + 14 写/执行）在 ai-exec 进程内执行，TOOL_META 仅用于 UI 展示。
 // 会话持久在服务端：sessionId 与 URL query ?session= 双向同步（跨设备续聊链接）。
 import { useEffect, useRef, useState } from 'react'
+import type { HTMLAttributes, ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useChat } from '@ai-sdk/react'
 import type { UIMessage } from 'ai'
@@ -107,12 +108,16 @@ export interface AiChatProps {
   onClose?: () => void
   /** 流式回复状态上抛（FAB 收起时据此显示 live 点） */
   onBusyChange?: (busy: boolean) => void
+  /** header 容器透传（悬浮 dock 用它挂拖拽 onPointerDown + cursor 样式） */
+  headerProps?: HTMLAttributes<HTMLDivElement>
+  /** header 右端按钮组里、X 之前插入的额外按钮（悬浮/停靠切换等） */
+  headerExtra?: ReactNode
 }
 
 /** 权限选择持久化 key（跨刷新记忆；默认 confirm） */
 const PERMISSION_STORAGE_KEY = 'k8s-ai-permission'
 
-export function AiChat({ cluster, showHeader = false, compact = false, className, onClose, onBusyChange }: AiChatProps) {
+export function AiChat({ cluster, showHeader = false, compact = false, className, onClose, onBusyChange, headerProps, headerExtra }: AiChatProps) {
   const t = useT()
   // 裁决即时生效：批准/拒绝后 FAB 角标立刻归零/递减（30s 轮询只兜「人在面板外」）
   const pendingQc = useQueryClient()
@@ -379,10 +384,11 @@ export function AiChat({ cluster, showHeader = false, compact = false, className
     <MessageScrollerProvider autoScroll defaultScrollPosition="last-anchor">
       <div className={cn('relative flex h-full min-h-0 flex-col bg-background', className)}>
         {showHeader && (
-          <div className="flex h-11 shrink-0 items-center gap-2 px-4">
+          <div {...headerProps} className={cn('flex h-11 shrink-0 items-center gap-2 px-4', headerProps?.className)}>
             <div className="ml-auto flex items-center gap-1">
               {/* 本地 Provider：应用无全局 TooltipProvider（同 GatedButton 约定），缺失即崩 */}
               <TooltipProvider delayDuration={300}>
+              {headerExtra}
               {/* 历史会话：打开即查列表，点选恢复；Tooltip 补齐裸图标发现性 */}
               <Tooltip>
                 <TooltipTrigger asChild>

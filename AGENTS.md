@@ -24,5 +24,6 @@ cd backend && go build ./cmd                       # 后端
 4. 测试写操作只允许打在 `qa/demo-fixture.sh` 的夹具资源上，非夹具负载一律只读
 5. `useWatch` 对外契约（items/map/lastSync/reconnecting/forbidden/error）不可破坏消费方
 6. 来源优先级：照抄上游/权威源码 > 最小修改 > 自己写；UI 修复需用几何断言（rect/midY）而非只看截图
+7. 样式取值只改 `web/design-tokens/tokens/**` 再 `npm run tokens:build`；组件/index.css/adapter 禁止色值字面量（规则详见 `web/design-tokens/AGENTS.md`，parity 测试会拦）
 
 提交：默认本地 commit 不 push；commit 前跑对应检查命令。

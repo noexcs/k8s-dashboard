@@ -347,7 +347,7 @@ export function ApprovalRow({
               maxLength={200}
               className="h-6 min-w-0 flex-1 text-xs"
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && approvalId) onRespond(approvalId, false, note.trim() || undefined)
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing && approvalId) onRespond(approvalId, false, note.trim() || undefined)
                 if (e.key === 'Escape') {
                   // 只收这一段理由，不退整个 dock：阻止冒泡到 FAB 的全局 Esc（其 defaultPrevented 守卫正是为此准备）
                   e.preventDefault()

@@ -1,0 +1,6 @@
+{
+  "$description": "语义圆角：Tailwind --radius-{sm,md,lg,xl} 由 adapter 用本 token 做 ±px 映射。",
+  "radius": {
+    "base": { "$type": "dimension", "$value": "{radius.scale.base}", "$description": "卡片/按钮基准圆角（registry.radius 必须与此一致）" }
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "color": {
+    "background": {
+      "default": {
+        "$type": "color",
+        "$value": "#0d1512"
+      }
+    },
+    "foreground": {
+      "default": {
+        "$type": "color",
+        "$value": "#adf0d4"
+      }
+    },
+    "surface": {
+      "card": {
+        "$type": "color",
+        "$value": "#0f2e22"
+      },
+      "card-foreground": {
+        "$type": "color",
+        "$value": "#adf0d4"
+      },
+      "popover": {
+        "$type": "color",
+        "$value": "#0b3b2c"
+      },
+      "popover-foreground": {
+        "$type": "color",
+        "$value": "#adf0d4"
+      }
+    },
+    "primary": {
+      "default": {
+        "$type": "color",
+        "$value": "oklch(0.432 0.095 166.913)"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "oklch(0.979 0.021 166.113)"
+      }
+    },
+    "secondary": {
+      "default": {
+        "$type": "color",
+        "$value": "oklch(0.274 0.006 286.033)"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "oklch(0.985 0 0)"
+      }
+    },
+    "muted": {
+      "default": {
+        "$type": "color",
+        "$value": "#0f2e22"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#1fd8a4"
+      }
+    },
+    "accent": {
+      "default": {
+        "$type": "color",
+        "$value": "#0b3b2c"
+      },
+      "foreground": {
+        "$type": "color",
+        "$value": "#adf0d4"
+      }
+    },
+    "feedback": {
+      "destructive": {
+        "$type": "color",
+        "$value": "#e5484d"
+      },
+      "destructive-foreground": {
+        "$type": "color",
+        "$value": "#ffd1d9"
+      }
+    },
+    "border": {
+      "default": {
+        "$type": "color",
+        "$value": "#1b5745"
+      },
+      "input": {
+        "$type": "color",
+        "$value": "#246854"
+      },
+      "ring": {
+        "$type": "color",
+        "$value": "#2a7e68"
+      }
+    },
+    "navigation": {
+      "sidebar": {
+        "$type": "color",
+        "$value": "#121c18"
+      },
+      "sidebar-foreground": {
+        "$type": "color",
+        "$value": "#adf0d4"
+      },
+      "sidebar-primary": {
+        "$type": "color",
+        "$value": "oklch(0.696 0.17 162.48)"
+      },
+      "sidebar-primary-foreground": {
+        "$type": "color",
+        "$value": "oklch(0.262 0.051 172.552)"
+      },
+      "sidebar-accent": {
+        "$type": "color",
+        "$value": "#114837"
+      },
+      "sidebar-accent-foreground": {
+        "$type": "color",
+        "$value": "#adf0d4"
+      },
+      "sidebar-border": {
+        "$type": "color",
+        "$value": "#1b5745"
+      },
+      "sidebar-ring": {
+        "$type": "color",
+        "$value": "#2a7e68"
+      }
+    }
+  },
+  "$description": "Jade 翡翠终端：Radix Colors v3 jade 全色阶照抄（@radix-ui/colors），彩色纸底 + 深色导航（light）/彩色暗底（dark）；chart-*/状态色不随主题（图表语义优先）。",
+  "radius": {
+    "base": {
+      "$type": "dimension",
+      "$value": "{radius.scale.sharp}"
+    }
+  },
+  "spacing": {
+    "scale": {
+      "default": {
+        "$type": "dimension",
+        "$value": "{spacing.scale.dense}"
+      }
+    }
+  }
+}
