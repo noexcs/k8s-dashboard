@@ -24,14 +24,14 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     cd ./backend && go build -o ./headlamp-server ./cmd/
 
-FROM node:22 AS frontend-build
+FROM node:25 AS frontend-build
 
 COPY web/package*.json /headlamp/web/
 WORKDIR /headlamp
 RUN cd ./web && npm ci
 
 # AI 执行层构建：ai-exec 纯 JS 依赖（pi SDK + typebox），npm ci 产物即运行目录
-FROM node:22 AS ai-exec-build
+FROM node:25 AS ai-exec-build
 WORKDIR /opt/ai-exec
 COPY ai-exec/package*.json /opt/ai-exec/
 RUN npm ci --omit=dev
@@ -49,7 +49,7 @@ RUN echo "*** Built K8S Dashboard (headlamp fork) ***"
 
 # final 用 node:22-slim 而非 alpine:3.20——本地钉死的 alpine:3.20 只有 Node 20（< pi 要求的 22.19），
 # 按 spec 回退方案换 base；ca-certificates 已随 node:22-slim 自带。
-FROM node:22-slim AS final
+FROM node:25-slim AS final
 
 # node:22-slim base 自带 node 用户（uid/gid 1000）：直接复用——
 # 与卷内文件属主（1000:1000，早期镜像用 headlamp 用户创建）一致，免 EACCES；

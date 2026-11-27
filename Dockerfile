@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     cd ./backend && go build -o ./headlamp-server ./cmd/
 
-FROM --platform=${BUILDPLATFORM} node:22@sha256:e13726ca604184d7a91fcacab1fc09eefd642dc28e79ac34e85540dd93b78cfb AS frontend-build
+FROM --platform=${BUILDPLATFORM} node:25@sha256:78839ac448c23517f8eab2e8f7943d9b4f73979eb7f8bed2c73dbf72ff869e7b AS frontend-build
 
 # Keep npm install separated so source changes don't trigger install
 # web/ 构建需要 devDependencies（vite/tsc/tailwind），所以用完整 npm ci
@@ -38,7 +38,7 @@ WORKDIR /headlamp
 RUN cd ./web && npm ci
 
 # AI 执行层构建：ai-exec 纯 JS 依赖（pi SDK + typebox），npm ci 产物即运行目录
-FROM --platform=${BUILDPLATFORM} node:22@sha256:e13726ca604184d7a91fcacab1fc09eefd642dc28e79ac34e85540dd93b78cfb AS ai-exec-build
+FROM --platform=${BUILDPLATFORM} node:25@sha256:78839ac448c23517f8eab2e8f7943d9b4f73979eb7f8bed2c73dbf72ff869e7b AS ai-exec-build
 WORKDIR /opt/ai-exec
 COPY ai-exec/package*.json /opt/ai-exec/
 RUN npm ci --omit=dev
