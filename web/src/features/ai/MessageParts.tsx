@@ -7,7 +7,6 @@ import {
   CircleCheck,
   Copy,
   Pencil,
-  RotateCcw,
   Search,
   ShieldAlert,
   Terminal,
@@ -21,7 +20,7 @@ import { clipboardWrite } from '@/lib/clipboard'
 import { Markdown } from '@/components/markdown'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CodeBlock, CodeBlockContent, CodeBlockLine } from '@/components/ui/code-block'
+import { CodeBlock, CodeBlockContent, CodeBlockHeader, CodeBlockLine, CodeBlockTitle } from '@/components/ui/code-block'
 import {
   Item,
   ItemActions,
@@ -78,11 +77,11 @@ const TOOL_META: Record<string, { icon: LucideIcon; label: string }> = {
   exec_pod: { icon: Terminal, label: 'ai:toolExecPod' },
 }
 
-export function StepRow({ part, streaming, staleResend, onStaleResend }: { part: ReasoningPart | ToolPart; streaming: boolean; staleResend?: string; onStaleResend?: (text: string) => void }) {
+export function StepRow({ part, streaming }: { part: ReasoningPart | ToolPart; streaming: boolean }) {
   if (part.type === 'reasoning') {
     return <ReasoningRow text={part.text} running={part.state === 'streaming'} />
   }
-  return <ToolRow part={part} streaming={streaming} staleResend={staleResend} onStaleResend={onStaleResend} />
+  return <ToolRow part={part} streaming={streaming} />
 }
 
 /**
@@ -128,7 +127,7 @@ function ReasoningRow({ text, running }: { text: string; running: boolean }) {
 
 /** JSON 高亮代码块：可解析 JSON 用 json 语法，否则 yaml 兜底（yaml 词法宽容，
  *  普通文本/错误信息也能正常着色）；高亮器加载前按纯文本先渲染。 */
-function JsonCode({ text, maxH }: { text: string; maxH?: string }) {
+function JsonCode({ text, maxH, label }: { text: string; maxH?: string; label?: string }) {
   const [lines, setLines] = useState<ReactNode[] | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -149,6 +148,12 @@ function JsonCode({ text, maxH }: { text: string; maxH?: string }) {
   }, [text])
   return (
     <CodeBlock size="sm">
+      {/* 标签进块内做表头（同一张卡），不再悬在块外——脱离的标签+块=两段式拼装感 */}
+      {label && (
+        <CodeBlockHeader>
+          <CodeBlockTitle className="text-xs font-medium text-muted-foreground">{label}</CodeBlockTitle>
+        </CodeBlockHeader>
+      )}
       <CodeBlockContent wrap className={maxH}>
         {lines == null ? (
           <CodeBlockLine>{text}</CodeBlockLine>
@@ -181,7 +186,7 @@ export function CopyAnswer({ text }: { text: string }) {
   )
 }
 
-function ToolRow({ part, streaming, staleResend, onStaleResend }: { part: ToolPart; streaming: boolean; staleResend?: string; onStaleResend?: (text: string) => void }) {
+function ToolRow({ part, streaming }: { part: ToolPart; streaming: boolean }) {
   const t = useT()
   // 服务端工具 part：type 为 tool-<name>（dynamic-tool 兜底）
   const name = part.type === 'dynamic-tool' ? part.toolName : part.type.slice('tool-'.length)
@@ -264,23 +269,12 @@ function ToolRow({ part, streaming, staleResend, onStaleResend }: { part: ToolPa
         </TraceLine>
       </TraceCollapsibleTrigger>
       <TraceCollapsibleContent className="space-y-2">
-        {inputText && (
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">{t('ai:params')}</div>
-            <JsonCode text={inputText} maxH="max-h-40" />
-          </div>
+        {inputText && <JsonCode text={inputText} maxH="max-h-40" label={t('ai:params')} />}
+        {body ? (
+          <JsonCode text={body} maxH="max-h-60" label={failed ? t('ai:error') : t('ai:result')} />
+        ) : (
+          <div className="text-[13px] text-muted-foreground">{t('ai:noOutput')}</div>
         )}
-        <div className="space-y-1">
-          <div className="text-xs text-muted-foreground">{failed ? t('ai:error') : t('ai:result')}</div>
-          {body ? <JsonCode text={body} maxH="max-h-60" /> : <div className="text-[13px] text-muted-foreground">{t('ai:noOutput')}</div>}
-          {staleResend && isStale && (
-            // 断线失效的写操作：一键把原始请求灌回输入框（不自动发——写操作仍须用户过一遍确认门）
-            <Button variant="outline" size="xs" className="gap-1" title={name} onClick={() => onStaleResend?.(staleResend)}>
-              <RotateCcw className="size-3" />
-              {t('ai:staleRefill')}
-            </Button>
-          )}
-        </div>
       </TraceCollapsibleContent>
     </TraceCollapsible>
   )

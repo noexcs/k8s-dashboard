@@ -68,7 +68,6 @@ export const STRINGS_AI: Record<string, Entry> = {
   'ai:denyWithNote': { zh: '拒绝并说明', en: 'deny with reason' },
   'ai:denyNotePh': { zh: '为什么否决（给 AI 和交班看）', en: 'why denied (for the AI & handover)' },
   'ai:staleLabel': { zh: '{label} · 中断未生效', en: '{label} · voided' },
-  'ai:staleRefill': { zh: '把原请求填回输入框', en: 'refill original request' },
   'ai:noOutput': { zh: '无输出', en: 'No output' },
   // ---- 写确认批准卡 ----
   'ai:approvalTitle': { zh: '写操作需要批准：', en: 'Write operation requires approval: ' },

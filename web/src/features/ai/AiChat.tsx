@@ -517,7 +517,7 @@ export function AiChat({ cluster, showHeader = false, compact = false, className
                     compact ? 'px-3 py-2' : 'px-4 py-3',
                   )}
                 >
-                  {messages.map((m, mi) => {
+                  {messages.map(m => {
                     if (m.role === 'user') {
                       return (
                         <MessageScrollerItem key={m.id} messageId={m.id} scrollAnchor>
@@ -549,12 +549,6 @@ export function AiChat({ cluster, showHeader = false, compact = false, className
                       | { t: 'trace'; key: number; items: (ReasoningPart | ToolPart)[] }
                       | { t: 'text'; key: number; text: string }
                       | { t: 'approval'; key: number; part: ToolPart }
-                    // 断线失效工具行的重发素材：本 assistant 消息之前最近的用户请求
-                    const prevUserText = [...messages.slice(0, mi)]
-                      .reverse()
-                      .find(x => x.role === 'user')
-                      ?.parts.find(p => p.type === 'text')
-                      ?.text
                     const segments: Segment[] = []
                     m.parts.forEach((part, idx) => {
                       if (isPendingApproval(part)) {
@@ -587,8 +581,6 @@ export function AiChat({ cluster, showHeader = false, compact = false, className
                                     }
                                     part={part}
                                     streaming={streaming}
-                                    staleResend={prevUserText}
-                                    onStaleResend={(text) => setInput((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
                                   />
                                 ))
                                 // 完成态台账收成一行「已完成 N 步」（平铺 7+ 行占屏 1/4）；
