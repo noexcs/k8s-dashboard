@@ -10,7 +10,7 @@ import { Info, Loader2, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { FADE, INSET, SectionCard } from './parts'
+import { FADE, INSET, SectionCard, SettingTile } from './parts'
 import { readPromConfig, usePrometheus, writePromConfig, type PromConfig } from '@/hooks/usePrometheus'
 import { tf, useT } from '@/i18n'
 import { cn } from '@/lib/utils'
@@ -31,15 +31,12 @@ const toForm = (c: PromConfig | null): Form => ({
   port: c?.port ?? '',
 })
 
-/** 字段组：小标签在上、等宽输入在下（Shipping Address 卡同款，标签可点） */
+/** 字段瓦片：与外观节自定义组同构（inset 面板内嵌实体边框瓦片，全页一种容器语言） */
 function Field({ id, label, children, className }: { id: string; label: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <div className={className}>
-      <label htmlFor={id} className="block text-xs font-medium text-muted-foreground">
-        {label}
-      </label>
-      <div className="mt-1.5">{children}</div>
-    </div>
+    <SettingTile className={cn('bg-card', className)} label={<label htmlFor={id}>{label}</label>}>
+      {children}
+    </SettingTile>
   )
 }
 
@@ -99,6 +96,7 @@ export function PromSettingsCard({ id }: { id?: string }) {
     clearTimer.current = window.setTimeout(() => setConfirmClear(false), 3000)
   }
 
+  // 卡头徽标区：role=status——保存/「重新探测」后的 探测中→已连接/不可达 是异步结果，读屏必须能听到
   const statusBadge = saved ? (
     checking ? (
       <Badge variant="secondary" className={cn(FADE, 'gap-1.5 px-2 py-0.5 font-normal text-muted-foreground')}>
@@ -118,59 +116,59 @@ export function PromSettingsCard({ id }: { id?: string }) {
         {reachable ? t('settings:promUp') : t('settings:promDown')}
       </Badge>
     )
-  ) : undefined
+  ) : (
+    // 未配置是缺省态不是错误：中性徽标直接说「未配置」，不让人从灰色 placeholder 反推
+    <Badge variant="secondary" className="px-2 py-0.5 font-normal text-muted-foreground">
+      {t('settings:promUnconfigured')}
+    </Badge>
+  )
 
   return (
-    <SectionCard id={id} title={t('settings:promTitle')} desc={t('settings:promHint')} action={statusBadge}>
-      {/* 主面板：服务发现（推荐路径，浏览器只访问集群 API） */}
-      <div className={cn(INSET, 'p-3')}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field id="prom-svc" label={t('settings:promSvcLabel')} className="sm:col-span-2">
-            <Input
-              id="prom-svc"
-              value={cfg.svc}
-              onChange={e => setCfg({ ...cfg, svc: e.target.value })}
-              placeholder="kube-prometheus-stack-prometheus"
-              aria-invalid={invalid || undefined}
-              className="h-8 font-mono text-[13px] md:text-[13px]"
-            />
-          </Field>
-          <Field id="prom-ns" label={t('settings:promNsLabel')}>
-            <Input
-              id="prom-ns"
-              value={cfg.ns}
-              onChange={e => setCfg({ ...cfg, ns: e.target.value })}
-              placeholder="monitoring"
-              aria-invalid={invalid || undefined}
-              className="h-8 font-mono text-[13px] md:text-[13px]"
-            />
-          </Field>
-          <Field
+    <SectionCard id={id} title={t('settings:promTitle')} desc={t('settings:promHint')} action={<span role="status" aria-live="polite">{statusBadge}</span>}>
+      {/* 单一 inset 面板=与外观节同款容器语言；服务发现（主路径）与直连 URL 同组瓦片排布 */}
+      <div className={cn(INSET, 'grid gap-2 p-3 sm:grid-cols-2')}>
+        <Field id="prom-svc" label={t('settings:promSvcLabel')} className="sm:col-span-2">
+          <Input
+            id="prom-svc"
+            value={cfg.svc}
+            onChange={e => setCfg({ ...cfg, svc: e.target.value })}
+            placeholder="kube-prometheus-stack-prometheus"
+            aria-invalid={(invalid && !cfg.svc.trim()) || undefined}
+            aria-describedby={invalid ? 'prom-group-err' : undefined}
+            className="h-8 font-mono text-[13px] md:text-[13px]"
+          />
+        </Field>
+        <Field id="prom-ns" label={t('settings:promNsLabel')}>
+          <Input
+            id="prom-ns"
+            value={cfg.ns}
+            onChange={e => setCfg({ ...cfg, ns: e.target.value })}
+            placeholder="monitoring"
+            aria-invalid={(invalid && !cfg.ns.trim()) || undefined}
+            aria-describedby={invalid ? 'prom-group-err' : undefined}
+            className="h-8 font-mono text-[13px] md:text-[13px]"
+          />
+        </Field>
+        <Field
+          id="prom-port"
+          label={
+            <>
+              {t('settings:promPortLabel')} <span className="font-normal">· {t('settings:promPortHttp')}</span>
+            </>
+          }
+        >
+          <Input
             id="prom-port"
-            label={
-              <>
-                {t('settings:promPortLabel')} <span className="font-normal">· {t('settings:promPortHttp')}</span>
-              </>
-            }
-          >
-            <Input
-              id="prom-port"
-              value={cfg.port}
-              onChange={e => setCfg({ ...cfg, port: e.target.value })}
-              placeholder={t('settings:promPortPh')}
-              inputMode="numeric"
-              aria-invalid={badPort || undefined}
-              className="h-8 font-mono text-[13px] md:text-[13px]"
-            />
-          </Field>
-        </div>
-        {invalid && <p role="alert" className={cn(FADE, 'mt-1.5 text-xs text-destructive')}>{t('settings:promNeedNsSvc')}</p>}
-        {badPort && <p role="alert" className={cn(FADE, 'mt-1.5 text-xs text-destructive')}>{t('settings:promPortBad')}</p>}
-      </div>
-
-      {/* 次级细节：显式 URL（集群外可达地址），填写后优先于服务发现 */}
-      <div className="mt-4">
-        <Field id="prom-url" label={t('settings:promUrlLabel')}>
+            value={cfg.port}
+            onChange={e => setCfg({ ...cfg, port: e.target.value })}
+            placeholder={t('settings:promPortPh')}
+            inputMode="numeric"
+            aria-invalid={badPort || undefined}
+            aria-describedby={badPort ? 'prom-port-err' : undefined}
+            className="h-8 font-mono text-[13px] md:text-[13px]"
+          />
+        </Field>
+        <Field id="prom-url" label={t('settings:promUrlLabel')} className="sm:col-span-2">
           <Input
             id="prom-url"
             value={cfg.url}
@@ -179,8 +177,18 @@ export function PromSettingsCard({ id }: { id?: string }) {
             className="h-8 font-mono text-[13px]"
           />
         </Field>
+        {invalid && (
+          <p id="prom-group-err" role="alert" className={cn(FADE, 'text-xs text-destructive sm:col-span-2')}>
+            {t('settings:promNeedNsSvc')}
+          </p>
+        )}
+        {badPort && (
+          <p id="prom-port-err" role="alert" className={cn(FADE, 'text-xs text-destructive sm:col-span-2')}>
+            {t('settings:promPortBad')}
+          </p>
+        )}
         {urlWins && (
-          <p className={cn(FADE, 'mt-1.5 flex items-start gap-1.5 text-xs leading-4 text-muted-foreground')}>
+          <p className={cn(FADE, 'flex items-start gap-1.5 text-xs leading-4 text-muted-foreground sm:col-span-2')}>
             <Info className="mt-0.5 size-3 shrink-0" />
             {t('settings:promUrlWins')}
           </p>

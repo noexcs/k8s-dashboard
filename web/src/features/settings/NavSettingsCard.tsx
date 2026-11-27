@@ -1,9 +1,10 @@
 // 设置页「侧栏」卡片：每个分组一枚可拖动的勾选卡片——
-// 卡片头=拖拽手柄+组名+隐藏数(EyeOff)+条目总数，卡片体=响应式勾选网格（容器查询 2→3→4 列）；
-// 分组顺序=鼠标按住卡片拖动（HTML5 DnD，dragEnter 即实时换位，drop 只收尾）。
+// 卡片头=拖拽手柄+组名+隐藏数(EyeOff)+条目总数+上移/下移，卡片体=响应式勾选网格（容器查询 2→3→4 列）；
+// 分组顺序=鼠标按住卡片拖动（HTML5 DnD，dragEnter 即实时换位，drop 只收尾），
+// 或键盘走卡头上的上移/下移按钮（WCAG 2.5.7：拖拽必须有非手势替代），移动结果经 role=status 播报。
 // 持久化（按集群 localStorage）见 useNavPrefs；底栏 dirty 时出现恢复默认按钮。
 import { useState } from 'react'
-import { EyeOff, GripVertical, RotateCcw } from 'lucide-react'
+import { ArrowDown, ArrowUp, EyeOff, GripVertical, RotateCcw } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -41,11 +42,20 @@ export function NavSettingsCard({ id }: { id?: string }) {
     setDragging(null)
     setOverKey(null)
   }
+  // 键盘换位（拖拽的无障碍等价路径）：与相邻组互换，结果经 role=status 播报给读屏
+  const [movedMsg, setMovedMsg] = useState('')
+  const moveBy = (gi: number, dir: -1 | 1) => {
+    const self = groups[gi]
+    const other = groups[gi + dir]
+    if (!self || !other) return
+    nav.moveTo(self.section, other.section)
+    setMovedMsg(tf('settings:sidebarMoved', { name: self.label, n: gi + dir + 1 }))
+  }
 
   return (
     <SectionCard id={id} title={t('settings:sidebar')} desc={t('settings:sidebarHint')}>
       <div className="flex flex-col gap-2">
-        {groups.map(g => {
+        {groups.map((g, gi) => {
           const hiddenCount = g.items.filter(it => nav.hidden.has(it.key)).length
           return (
             <section
@@ -85,8 +95,31 @@ export function NavSettingsCard({ id }: { id?: string }) {
                     {hiddenCount}
                   </span>
                 )}
-                <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-                  {g.items.length === 1 ? t('settings:sidebarCountOne') : tf('settings:sidebarCount', { n: g.items.length })}
+                <span className="ml-auto flex shrink-0 items-center gap-1">
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {g.items.length === 1 ? t('settings:sidebarCountOne') : tf('settings:sidebarCount', { n: g.items.length })}
+                  </span>
+                  {/* 键盘/触屏换位路径：与拖拽同语义（与相邻组互换），首/尾禁用对应方向 */}
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    className="size-6 text-muted-foreground hover:text-foreground"
+                    aria-label={tf('settings:sidebarMoveUp', { name: g.label })}
+                    disabled={gi === 0}
+                    onClick={() => moveBy(gi, -1)}
+                  >
+                    <ArrowUp />
+                  </Button>
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    className="size-6 text-muted-foreground hover:text-foreground"
+                    aria-label={tf('settings:sidebarMoveDown', { name: g.label })}
+                    disabled={gi === groups.length - 1}
+                    onClick={() => moveBy(gi, 1)}
+                  >
+                    <ArrowDown />
+                  </Button>
                 </span>
               </header>
               <div className="grid grid-cols-2 gap-x-3 @xl:grid-cols-3 @4xl:grid-cols-4">
@@ -113,6 +146,11 @@ export function NavSettingsCard({ id }: { id?: string }) {
           )
         })}
       </div>
+
+      {/* 键盘换位的读屏播报（拖拽路径视觉即反馈，无需播报） */}
+      <p role="status" className="sr-only">
+        {movedMsg}
+      </p>
 
       {/* ---- 底部操作行：有改动才出现，常驻可点 ---- */}
       {nav.dirty && (

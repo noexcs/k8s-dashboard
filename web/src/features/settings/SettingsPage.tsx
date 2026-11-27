@@ -143,15 +143,26 @@ function ColorField({ label, hint, className, presets, value, onPick, preview, d
           <SwatchDot key={hex} hex={hex} disabled={disabled} active={value?.toLowerCase() === hex} title={`${label} · ${name} ${hex}`} onClick={() => onPick(hex)} />
         ))}
         <span className="mx-0.5 h-6 w-px shrink-0 bg-border" aria-hidden="true" />
-        <input
-          ref={ref}
-          type="color"
-          defaultValue="#0090ff"
-          aria-label={label}
-          title={label}
-          disabled={disabled}
-          className="size-6 shrink-0 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
-        />
+        {/* Chromium 不给 ::-webkit-color-swatch 换透明底——未覆盖时用不拦截点击的
+            斜纹贴片盖住原生色块（原生块会显示面板默认色/上次色，被读成「已选这色」） */}
+        <span className="relative inline-flex shrink-0">
+          <input
+            ref={ref}
+            type="color"
+            defaultValue="#0090ff"
+            aria-label={label}
+            title={label}
+            disabled={disabled}
+            data-empty={!value || undefined}
+            className="size-6 shrink-0 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
+          />
+          {!value && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-[3px] rounded-[3px] bg-card bg-[linear-gradient(135deg,transparent_44%,var(--muted-foreground)_44%,var(--muted-foreground)_56%,transparent_56%)]"
+            />
+          )}
+        </span>
       </div>
     </SettingTile>
   )
@@ -247,8 +258,10 @@ export function SettingsPage() {
   ]
   const [activeSec, setActiveSec] = useState('sec-appearance')
   // 点击跳转的短暂锁定：贴近页尾的两个锚点（通知/关于）共享同一最大滚动位，
-  // 位置无法区分「用户想在哪」——点击意图 1.2s 内说了算，手动滚动即接管
+  // 位置无法区分「用户想在哪」——点击意图 1.2s 内说了算；手动滚动即接管（事件驱动，见 jump）
   const spyLock = useRef(0)
+  const spyRef = useRef<() => void>(() => {})
+  const spyAbort = useRef<AbortController | null>(null)
   useEffect(() => {
     const order = Array.from(document.querySelectorAll('[data-setting-section]'), el => el.id)
     const scroller = document.querySelector<HTMLElement>('[data-setting-section]')?.closest('.overflow-auto')
@@ -274,6 +287,7 @@ export function SettingsPage() {
       }
       setActiveSec(prev => (prev === current ? prev : current))
     }
+    spyRef.current = spy
     spy()
     scroller.addEventListener('scroll', spy, { passive: true })
     window.addEventListener('resize', spy)
@@ -286,6 +300,22 @@ export function SettingsPage() {
     const el = document.getElementById(sid)
     if (!el) return
     spyLock.current = Date.now() + 1200
+    // 「手动滚动即接管」是真事件驱动：滚轮、或按在内容区（导航列自身除外）即解除锁定并
+    // 立刻重算高亮——只靠 1.2s 猜时长的话，长距离 smooth scroll 或急停都会让高亮撒谎
+    spyAbort.current?.abort()
+    const sc = el.closest('.overflow-auto')
+    if (sc) {
+      const ac = new AbortController()
+      spyAbort.current = ac
+      const release = (e: Event) => {
+        if (e.type === 'pointerdown' && (e.target as HTMLElement).closest('[data-slot="settings-nav"]')) return
+        spyLock.current = 0
+        ac.abort()
+        spyRef.current()
+      }
+      sc.addEventListener('wheel', release, { passive: true, signal: ac.signal })
+      sc.addEventListener('pointerdown', release, { signal: ac.signal })
+    }
     el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
     setActiveSec(sid)
     el.setAttribute('data-flash', '')
@@ -383,7 +413,7 @@ export function SettingsPage() {
 
           {/* 用户级自定义：muted inset 面板嵌实体瓦片（覆盖态加粗回显 + 常驻还原钮）；换主题后依然生效 */}
           <div>
-            <div className="mb-2 text-xs font-medium text-muted-foreground">{t('settings:customTitle')}</div>
+            <div className="mb-2 text-[13px] font-medium text-foreground/70">{t('settings:customTitle')}</div>
             <div className={cn(INSET, 'grid gap-2 p-3 sm:grid-cols-2')}>
               <SliderField
                 label={t('settings:customRadius')}
@@ -432,8 +462,9 @@ export function SettingsPage() {
                   ]}
                 />
               </SettingTile>
-              {/* 阴影档位：覆盖 --dt-shadow-{xs..xl}；「跟随主题」= 主题默认投影 */}
-              <SettingTile label={t('settings:customShadow')} className="bg-card">
+              {/* 阴影档位：覆盖 --dt-shadow-{xs..xl}；「跟随主题」= 主题默认投影。
+                  通栏：单列 tile 共 7 个（奇数），不通栏会在网格右下角留一块无信息死区 */}
+              <SettingTile label={t('settings:customShadow')} className="bg-card sm:col-span-2">
                 <Segmented
                   ariaLabel={t('settings:customShadow')}
                   value={custom.shadow ?? 'default'}
@@ -450,14 +481,14 @@ export function SettingsPage() {
                 className="sm:col-span-2"
                 presets={ACCENT_PRESETS}
                 value={custom.accent}
-                onPick={v => setCustom({ accent: v })}
+                onPick={v => setCustom({ accent: v }, { transition: true })}
                 preview={hex => previewVars({ '--dt-color-primary-default': hex, '--dt-color-border-ring': hex, '--dt-color-primary-foreground': autoFg(hex) })}
               />
               <ColorField
                 label={t('settings:customSidebar')}
                 presets={SIDEBAR_PRESETS}
                 value={custom.sidebar}
-                onPick={v => setCustom({ sidebar: v })}
+                onPick={v => setCustom({ sidebar: v }, { transition: true })}
                 preview={hex => previewVars({ '--dt-color-navigation-sidebar': hex, '--dt-color-navigation-sidebar-foreground': autoFg(hex) })}
               />
               <ColorField
@@ -465,7 +496,7 @@ export function SettingsPage() {
                 hint={t('settings:customBgLightOnly')}
                 presets={BG_PRESETS}
                 value={custom.bgBase}
-                onPick={v => setCustom({ bgBase: v })}
+                onPick={v => setCustom({ bgBase: v }, { transition: true })}
                 preview={hex => previewVars({ '--dt-color-background-default': hex })}
                 disabled={resolved === 'dark'}
               />
@@ -477,7 +508,7 @@ export function SettingsPage() {
       <SectionCard id="sec-language" title={t('settings:language')}>
         {/* 两档选项不做下拉，与明暗模式同交互（分段即切换） */}
         <SettingRow
-          label={t('settings:language')}
+          label={t('settings:languageRow')}
           hint={t(langOpt.descKey)}
           control={
             <Segmented
@@ -499,15 +530,10 @@ export function SettingsPage() {
       <AIServiceCard />
 
       <SectionCard id="sec-about" title={t('settings:about')} desc={t('settings:aboutDesc')}>
-        <div className="divide-y divide-border text-[13px]">
-          <div className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
-            <span className="text-muted-foreground">{t('settings:frontendVersion')}</span>
-            <span className="font-mono">v{WEB_VERSION}</span>
-          </div>
-          <div className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
-            <span className="text-muted-foreground">{t('settings:project')}</span>
-            <span>{t('settings:aboutProjectValue')}</span>
-          </div>
+        {/* 与全页同一种容器语言：实体瓦片行（左标签右值），不再是页面上唯一的分隔线裸文本 */}
+        <div className="space-y-2">
+          <SettingRow label={t('settings:frontendVersion')} control={<span className="font-mono text-[13px]">v{WEB_VERSION}</span>} />
+          <SettingRow label={t('settings:project')} control={<span className="text-[13px]">{t('settings:aboutProjectValue')}</span>} />
         </div>
       </SectionCard>
         </div>

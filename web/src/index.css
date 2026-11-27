@@ -797,3 +797,10 @@ svg.lucide {
   animation-duration: 200ms;
   animation-timing-function: var(--ease-strong);
 }
+
+/* ---- 取色器入口空态（设置页 ColorField data-empty）：Firefox 走 swatch 透明；
+   Chromium 的 swatch 不吃作者底色，由组件层的不拦截点击斜纹贴片盖住 ---- */
+input[type='color'][data-empty]::-moz-color-swatch {
+  border: none;
+  background-color: transparent;
+}

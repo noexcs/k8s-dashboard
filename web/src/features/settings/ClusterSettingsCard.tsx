@@ -138,6 +138,7 @@ export function ClusterSettingsCard({ id }: { id?: string }) {
                     variant="ghost"
                     className="size-7 text-muted-foreground hover:text-destructive"
                     title={t('settings:clusterDelete')}
+                    aria-label={t('settings:clusterDelete')}
                     aria-disabled={removing === c.name || undefined}
                     onClick={e => {
                       if (removing === c.name) return

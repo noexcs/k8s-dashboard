@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Check, Info, Pencil, Plus, RefreshCw, RotateCcw, Send, X } from 'lucide-react'
+import { Bell, Check, Eye, EyeOff, Info, Pencil, Plus, RefreshCw, RotateCcw, Send, Trash2, X } from 'lucide-react'
 import { tf, useT } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -115,6 +115,9 @@ export function AIServiceCard() {
   })
   const [editKey, setEditKey] = useState<'llmApiKey' | CfgKey | null>(null)
   const [draft, setDraft] = useState('')
+  // 密钥明文可见开关（编辑面板/Provider 表单各一）：密文看不出粘贴带来的尾随空格/断行
+  const [revealDraft, setRevealDraft] = useState(false)
+  const [revealProv, setRevealProv] = useState(false)
   // 编辑起始值：原样保存不发 PUT——否则「打开-保存」就把 env 底座盖成 UI 覆盖（假覆盖徽标）
   const editBase = useRef('')
   // 错误按卡片分桶：巡检/webhook 的失败不该飘到「AI 服务」卡底（两卡链路本就不相干）
@@ -207,6 +210,7 @@ export function AIServiceCard() {
   const startEdit = (key: 'llmApiKey' | CfgKey, initial: string) => {
     setEditKey(key)
     setDraft(initial)
+    setRevealDraft(false)
     editBase.current = initial
     setCfgErr(key, '')
   }
@@ -223,6 +227,15 @@ export function AIServiceCard() {
   // 每 provider 一格测试结果（id→态）：全局单态会把 A 的「可用」串显示在 B 行上
   const [pTests, setPTests] = useState<Record<string, { state: 'busy' | 'ok' | 'fail'; err?: string; models?: ProvModel[] }>>({})
   const [confirmDel, setConfirmDel] = useState('')
+  // 二段确认 3s 自动回退（与 prom 卡清空同款）：armed 态不能无限期挂着——
+  // 用户看别的卡回来随手一点就删配置；失焦同样回退
+  const delTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => clearTimeout(delTimer.current), [])
+  const armDel = (id: string) => {
+    clearTimeout(delTimer.current)
+    setConfirmDel(id)
+    delTimer.current = window.setTimeout(() => setConfirmDel(''), 3000)
+  }
 
   const putConfig = async (patch: Record<string, unknown>): Promise<string> => {
     const r = await fetch('/ai/config', {
@@ -391,20 +404,32 @@ export function AIServiceCard() {
     <div key={rk} className={cn(TILE, FADE, 'ring-2 ring-ring/25 transition-shadow')}>
       <div className="text-[13px] font-medium">{label}</div>
       <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Input
-          autoFocus
-          type={type}
-          value={draft}
-          placeholder={type === 'password' ? t('settings:aiLlmKeyPh') : undefined}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => {
-            // 中文输入法选词按的 Enter 不是提交：isComposing 时保存=半截拼音落盘
-            if (e.key === 'Enter' && !e.nativeEvent.isComposing) void saveCfg()
-            if (e.key === 'Escape') setEditKey(null)
-          }}
-          className="min-w-0 flex-1 font-mono text-[13px] md:text-[13px]"
-          aria-label={label}
-        />
+        <div className="relative min-w-0 flex-1">
+          <Input
+            autoFocus
+            type={type === 'password' ? (revealDraft ? 'text' : 'password') : type}
+            value={draft}
+            placeholder={type === 'password' ? t('settings:aiLlmKeyPh') : undefined}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => {
+              // 中文输入法选词按的 Enter 不是提交：isComposing 时保存=半截拼音落盘
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) void saveCfg()
+              if (e.key === 'Escape') setEditKey(null)
+            }}
+            className="w-full pr-8 font-mono text-[13px] md:text-[13px]"
+            aria-label={label}
+          />
+          {type === 'password' && (
+            <button
+              type="button"
+              onClick={() => setRevealDraft(r => !r)}
+              aria-label={t(revealDraft ? 'settings:aiKeyHide' : 'settings:aiKeyReveal')}
+              className="absolute inset-y-0 right-1.5 grid size-6 place-items-center text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {revealDraft ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+            </button>
+          )}
+        </div>
         <div className="flex gap-2">
           <Button
             className="flex-1 sm:flex-none"
@@ -679,8 +704,10 @@ export function AIServiceCard() {
               size="sm"
               variant={confirmDel === p.id ? 'destructive' : 'outline'}
               className={cn(confirmDel === p.id && 'min-w-[5.5rem]')}
-              onClick={() => { if (confirmDel === p.id) void removeProvider(p.id); else setConfirmDel(p.id) }}
+              onClick={() => { if (confirmDel === p.id) void removeProvider(p.id); else armDel(p.id) }}
+              onBlur={() => setConfirmDel('')}
             >
+              <Trash2 />
               {confirmDel === p.id ? t('settings:aiProviderDelConfirm') : t('settings:aiProviderDelete')}
             </Button>
           </div>
@@ -737,7 +764,17 @@ export function AIServiceCard() {
             </Select>
             {/* URL 与密钥同宽（各占整行）：两行等长输入框，视觉上也提示它们是同一组连接参数 */}
             <Input aria-label={t('settings:aiProviderUrl')} placeholder="http://host:port/v1" value={provForm.baseUrl} onChange={e => setProvForm(f => (f ? { ...f, baseUrl: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="font-mono text-[13px] sm:col-span-2" />
-            <Input type="password" aria-label={t('settings:aiProviderKey')} placeholder={provForm.hasKey ? t('settings:aiProviderKeyKeep') : t('settings:aiProviderKeyPh')} value={provForm.apiKey} onChange={e => setProvForm(f => (f ? { ...f, apiKey: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="font-mono text-[13px] sm:col-span-2" />
+            <div className="relative sm:col-span-2">
+              <Input type={revealProv ? 'text' : 'password'} aria-label={t('settings:aiProviderKey')} placeholder={provForm.hasKey ? t('settings:aiProviderKeyKeep') : t('settings:aiProviderKeyPh')} value={provForm.apiKey} onChange={e => setProvForm(f => (f ? { ...f, apiKey: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="w-full pr-8 font-mono text-[13px]" />
+              <button
+                type="button"
+                onClick={() => setRevealProv(r => !r)}
+                aria-label={t(revealProv ? 'settings:aiKeyHide' : 'settings:aiKeyReveal')}
+                className="absolute inset-y-0 right-1.5 grid size-6 place-items-center text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {revealProv ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              </button>
+            </div>
           </div>
           {formTest?.state === 'ok' && <p role="status" className="mt-1.5 text-xs text-muted-foreground">{tf('settings:aiProviderTestOk', { n: formTest.models?.length ?? 0 })}</p>}
           {formTest?.state === 'fail' && <p role="alert" className="mt-1.5 break-all text-xs text-destructive">{formTest.err}</p>}
@@ -818,7 +855,7 @@ export function AIServiceCard() {
         <div className="flex min-w-0 flex-1 items-start gap-2.5">
           <span
             aria-hidden
-            className={cn('mt-1.5 size-2 shrink-0 rounded-full transition-colors', q.isPending ? 'bg-muted-foreground/30' : st?.ok ? 'bg-primary' : 'bg-destructive')}
+            className={cn('mt-1.5 size-2 shrink-0 rounded-full transition-colors', q.isPending ? 'bg-muted-foreground/30' : st?.ok ? 'bg-positive' : 'bg-destructive')}
           />
           <div className="min-w-0 space-y-1.5">
             {/* 网关 URL 与模型芯片同行同基线（上下分行会把两个同权重信息读成主从）；
@@ -827,12 +864,20 @@ export function AIServiceCard() {
               {q.isPending ? (
                 <Skeleton className="h-5 w-24" />
               ) : (
-                <span key={String(st?.ok)} className={cn(FADE, 'text-sm font-semibold')}>{st?.ok ? t('settings:aiOk') : t('settings:aiDown')}</span>
+                <span key={String(st?.ok)} role={st?.ok ? 'status' : 'alert'} className={cn(FADE, 'text-sm font-semibold')}>{st?.ok ? t('settings:aiOk') : t('settings:aiDown')}</span>
               )}
               {st?.ok && st.gateway && (
-                <span className="max-w-[15rem] truncate rounded-md border bg-background px-2 py-0.5 font-mono text-xs text-muted-foreground" title={st.gatewayLabel ? `${st.gatewayLabel} · ${st.gateway}` : st.gateway}>
-                  {st.gatewayLabel ? `${st.gatewayLabel} · ` : ''}{st.gateway}
-                </span>
+                // 截断地址的全文走 Tooltip（title 触屏/键盘取不到，而这是 AI 排错第一信息）
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="max-w-[15rem] cursor-help truncate rounded-md border bg-background px-2 py-0.5 font-mono text-xs text-muted-foreground">
+                      {st.gatewayLabel ? `${st.gatewayLabel} · ` : ''}{st.gateway}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs break-all">
+                    {st.gatewayLabel ? `${st.gatewayLabel} · ${st.gateway}` : st.gateway}
+                  </TooltipContent>
+                </Tooltip>
               )}
               {q.isPending && <Skeleton className="h-5 w-40" />}
               {st?.ok &&
@@ -850,7 +895,7 @@ export function AIServiceCard() {
                 ))}
             </div>
             {!q.isPending && !st?.ok && (
-              <p key={st?.error ?? 'down'} className={cn(FADE, 'break-words font-mono text-xs leading-5 text-destructive')}>{st?.error ?? t('settings:aiDown')}</p>
+              <p key={st?.error ?? 'down'} role="alert" className={cn(FADE, 'break-words font-mono text-xs leading-5 text-destructive')}>{st?.error ?? t('settings:aiDown')}</p>
             )}
           </div>
         </div>
@@ -883,13 +928,6 @@ export function AIServiceCard() {
         id="sec-ai"
         title={t('settings:aiCard')}
         desc={t('settings:aiCardDesc')}
-        action={
-          !q.isPending && (
-            <Badge variant={st?.ok ? 'secondary' : 'destructive'} className="mt-0.5">
-              {st?.ok ? t('settings:aiOk') : t('settings:aiDown')}
-            </Badge>
-          )
-        }
       >
         <div className="space-y-4">
           {banner}
@@ -908,7 +946,7 @@ export function AIServiceCard() {
           {field('inspectIntervalMin', t('settings:aiScanInterval'), 'INSPECT_INTERVAL_MIN', min =>
             Number(min) > 0 ? tf('settings:aiScanOn', { min: Number(min) }) : t('settings:aiScanOff'),
           )}
-          {field('notifyWebhookUrl', t('settings:aiNotifyUrl'), 'NOTIFY_WEBHOOK_URL', v => (v ? String(v) : t('settings:aiNotifyOff')))}
+          {field('notifyWebhookUrl', t('settings:aiNotifyUrl'), 'NOTIFY_WEBHOOK_URL', v => (v ? String(v) : t('settings:aiNotifyUrlEmpty')))}
           {field('panelBaseUrl', t('settings:aiPanelUrl'), 'PANEL_BASE_URL', v => (v ? String(v) : t('settings:aiPanelUrlNone')))}
         </div>
         {cfgErrs.notify && !editKey && <p role="alert" className="mt-2 break-words text-xs text-destructive">{cfgErrs.notify}</p>}

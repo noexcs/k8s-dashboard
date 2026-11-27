@@ -204,12 +204,15 @@ function persistCustomSoon(): void {
   customPersistT = window.setTimeout(() => persist(KEY_CUSTOM, JSON.stringify(state.custom)), 150)
 }
 
-function setCustom(patch: Partial<CustomAppearance>): void {
+// opts.transition=预设点/「跟随主题」这类一步到位的整页改色：与 setTheme/setThemeId
+// 同款 200ms 淡切，避免同类操作两种反馈；滑杆/取色器逐 tick 预览必须直 apply（1:1 跟手）
+function setCustom(patch: Partial<CustomAppearance>, opts?: { transition?: boolean }): void {
   const custom = { ...state.custom, ...patch }
   for (const k of Object.keys(custom) as (keyof CustomAppearance)[]) if (custom[k] === undefined) delete custom[k]
   state = { ...state, custom }
   persistCustomSoon()
-  apply()
+  if (opts?.transition) withVT(apply)
+  else apply()
   listeners.forEach(l => l())
 }
 
@@ -232,7 +235,7 @@ export function useTheme(): {
   id: ThemeId
   setThemeId: (id: ThemeId) => void
   custom: CustomAppearance
-  setCustom: (patch: Partial<CustomAppearance>) => void
+  setCustom: (patch: Partial<CustomAppearance>, opts?: { transition?: boolean }) => void
   resetCustom: () => void
 } {
   const s = useSyncExternalStore(
