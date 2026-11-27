@@ -142,7 +142,9 @@ export function ActionMenuItem({
 }) {
   return (
     <DropdownMenuItem
-      className="p-0 focus:bg-transparent"
+      // 高亮必须走 item 的 focus:bg-accent（Radix hover 也会把 focus 移到 item）：
+      // 内钮 pointer-events-none 收不到 :hover，任何 focus:bg-transparent 都会让菜单项零反馈
+      className="p-0"
       // 动作挂 menuitem.onSelect：Radix 对鼠标点击与 Enter 都走 select——
       // 动作若挂内钮 onClick，键盘 Enter 只触发 select，内钮永不响应（v6 实测 dialog:false）。
       // 内钮纯展示（pointer-events-none），门控 tooltip 由外层 span 承接。
