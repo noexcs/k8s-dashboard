@@ -98,13 +98,15 @@ export function PromSettingsCard({ id }: { id?: string }) {
 
   // 卡头徽标区：role=status——保存/「重新探测」后的 探测中→已连接/不可达 是异步结果，读屏必须能听到
   const statusBadge = saved ? (
+    // key 强制分支切换时重挂载，FADE 才有淡入（同类型同槽位 React 只 diff props）
     checking ? (
-      <Badge variant="secondary" className={cn(FADE, 'gap-1.5 px-2 py-0.5 font-normal text-muted-foreground')}>
+      <Badge key="chk" variant="secondary" className={cn(FADE, 'gap-1.5 px-2 py-0.5 font-normal text-muted-foreground')}>
         <Loader2 className="size-3 animate-spin" />
         {t('settings:promChecking')}
       </Badge>
     ) : (
       <Badge
+        key={reachable ? 'up' : 'down'}
         variant="secondary"
         className={cn(
           FADE,

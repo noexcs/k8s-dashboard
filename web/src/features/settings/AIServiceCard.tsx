@@ -130,6 +130,8 @@ export function AIServiceCard() {
   const actorPatch = () => (localStorage.getItem('k8s-oncall') ? { actor: localStorage.getItem('k8s-oncall') } : {})
   const saveCfg = async () => {
     if (!editKey || cfgBusy) return
+    // Enter 路径也堵住「空密钥=静默清除」
+    if (editKey === 'llmApiKey' && !draft.trim() && cfgQ.data?.llmApiKey.configured) return
     // 巡检间隔只收非负整数：type=number 挡不住 paste 垃圾，PUT 前再过一道
     if (editKey === 'inspectIntervalMin' && !/^\d{1,4}$/.test(draft.trim())) {
       setCfgErr(editKey, t('settings:cfgNeedNumber'))
@@ -400,8 +402,11 @@ export function AIServiceCard() {
   // 定值 key="view" 在多个字段瓦片同父并列时是重复 key，进入编辑态会让 React 错误复用 DOM（卡片翻倍）
   const editPanel = (label: string, envName: string, type = 'text', rk = 'edit') => {
     const err = editKey ? cfgErrs[scopeOf(editKey)] : ''
+    // 密钥编辑框恒空：直接保存=清除。与 provider 表单「留空保持原密钥」语义相反，
+    // 静默清除会让全线 401——空值即禁用保存并显式指路「还原」
+    const wipe = editKey === 'llmApiKey' && !draft.trim() && !!cfgQ.data?.llmApiKey.configured
     return (
-    <div key={rk} className={cn(TILE, FADE, 'ring-2 ring-ring/25 transition-shadow')}>
+    <div key={rk} className={cn(TILE, FADE, 'ring-2 ring-ring/25')}>
       <div className="text-[13px] font-medium">{label}</div>
       <div className="mt-2 flex flex-col gap-2 sm:flex-row">
         <div className="relative min-w-0 flex-1">
@@ -431,12 +436,13 @@ export function AIServiceCard() {
           )}
         </div>
         <div className="flex gap-2">
+          {wipe && <p className="self-center text-xs text-muted-foreground">{t('settings:aiKeyWipeHint')}</p>}
           <Button
             className="flex-1 sm:flex-none"
             size="sm"
-            aria-disabled={cfgBusy || undefined}
+            aria-disabled={cfgBusy || wipe || undefined}
             onClick={() => {
-              if (cfgBusy) return
+              if (cfgBusy || wipe) return
               void saveCfg()
             }}
           >
@@ -666,6 +672,9 @@ export function AIServiceCard() {
   const providerRow = (p: ProviderItem) => {
     const active = p.id === provs?.activeId
     const tst = pTests[p.id]
+    // 「获取模型」整体覆盖目录后，旧默认模型可能已不在列表——回显占位符会掩盖仍在生效的旧值
+    const curModel = String(cfgQ.data?.llmModel.value ?? '')
+    const staleModel = curModel !== '' && !p.models.some(m => m.id === curModel)
     return (
       <div key={p.id} className={cn(TILE, FADE)}>
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -684,13 +693,14 @@ export function AIServiceCard() {
             <span className={cn('shrink-0 text-xs', !p.hasKey && 'text-muted-foreground')}>{p.hasKey ? t('settings:aiProviderKeySet') : t('settings:aiProviderKeyNone')}</span>
           </label>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Button size="sm" variant="outline" aria-disabled={tst?.state === 'busy' || undefined} onClick={() => { if (tst?.state !== 'busy') void testProvider({ id: p.id, baseUrl: p.baseUrl, api: p.api }, p.id) }}>
+            <Button size="sm" variant="outline" aria-label={tf('settings:aiProviderTestAria', { name: p.name })} aria-disabled={tst?.state === 'busy' || undefined} onClick={() => { if (tst?.state !== 'busy') void testProvider({ id: p.id, baseUrl: p.baseUrl, api: p.api }, p.id) }}>
               {tst?.state === 'busy' ? <Spinner /> : tst?.state === 'ok' ? <Check /> : tst?.state === 'fail' ? <X /> : <Send />}
               {t('settings:aiProviderTest')}
             </Button>
             <Button
               size="sm"
               variant="outline"
+              aria-label={tf('settings:aiProviderEditAria', { name: p.name })}
               onClick={() => {
                 setPTests(m => { const copy = { ...m }; delete copy[p.id]; return copy })
                 setProvErr('')
@@ -703,7 +713,9 @@ export function AIServiceCard() {
             <Button
               size="sm"
               variant={confirmDel === p.id ? 'destructive' : 'outline'}
-              className={cn(confirmDel === p.id && 'min-w-[5.5rem]')}
+              aria-label={tf('settings:aiProviderDelAria', { name: p.name })}
+              // 恒定 min-w（同 Prom 卡先例）：只挂确认态=按下的瞬间邻钮被推跳
+              className="min-w-[6.5rem]"
               onClick={() => { if (confirmDel === p.id) void removeProvider(p.id); else armDel(p.id) }}
               onBlur={() => setConfirmDel('')}
             >
@@ -733,6 +745,11 @@ export function AIServiceCard() {
                 <SelectValue placeholder={t('settings:aiProviderDefaultModel')} />
               </SelectTrigger>
               <SelectContent>
+                {staleModel && (
+                  <SelectItem key={curModel} value={curModel} className="font-mono text-xs text-muted-foreground">
+                    {curModel} · {t('settings:aiProviderModelStale')}
+                  </SelectItem>
+                )}
                 {p.models.map(m => (
                   <SelectItem key={m.id} value={m.id} className="font-mono text-xs">{m.id}</SelectItem>
                 ))}
@@ -864,7 +881,10 @@ export function AIServiceCard() {
               {q.isPending ? (
                 <Skeleton className="h-5 w-24" />
               ) : (
-                <span key={String(st?.ok)} role={st?.ok ? 'status' : 'alert'} className={cn(FADE, 'text-sm font-semibold')}>{st?.ok ? t('settings:aiOk') : t('settings:aiDown')}</span>
+                // live region 常驻（aria 要求内容变更才稳定播报，整块重挂 region 不可靠）；内层 key 只为 FADE 重播
+                <span role="status" className="contents">
+                  <span key={String(st?.ok)} className={cn(FADE, 'text-sm font-semibold')}>{st?.ok ? t('settings:aiOk') : t('settings:aiDown')}</span>
+                </span>
               )}
               {st?.ok && st.gateway && (
                 // 截断地址的全文走 Tooltip（title 触屏/键盘取不到，而这是 AI 排错第一信息）
@@ -894,9 +914,12 @@ export function AIServiceCard() {
                   modelChip
                 ))}
             </div>
-            {!q.isPending && !st?.ok && (
-              <p key={st?.error ?? 'down'} role="alert" className={cn(FADE, 'break-words font-mono text-xs leading-5 text-destructive')}>{st?.error ?? t('settings:aiDown')}</p>
-            )}
+            {/* alert 区域同样常驻，内容在区内换入换出 */}
+            <span role="alert" className="contents">
+              {!q.isPending && !st?.ok && (
+                <p key={st?.error ?? 'down'} className={cn(FADE, 'break-words font-mono text-xs leading-5 text-destructive')}>{st?.error ?? t('settings:aiDown')}</p>
+              )}
+            </span>
           </div>
         </div>
         <Button

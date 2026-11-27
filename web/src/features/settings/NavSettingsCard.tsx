@@ -88,7 +88,8 @@ export function NavSettingsCard({ id }: { id?: string }) {
             >
               <header className="mb-1 flex items-center gap-2">
                 <GripVertical className="size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" aria-hidden />
-                <h3 className="text-[13px] font-semibold tracking-tight">{g.label}</h3>
+                {/* 组标签统一档（同外观页「自定义」组头）：一边 semibold 全彩一边 medium 70% 灰=两种层级错觉 */}
+                <h3 className="text-[13px] font-medium text-foreground/70">{g.label}</h3>
                 {hiddenCount > 0 && (
                   <span className="flex items-center gap-1 text-xs tabular-nums text-muted-foreground">
                     <EyeOff className="size-3" aria-hidden />

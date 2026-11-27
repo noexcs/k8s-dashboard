@@ -122,7 +122,9 @@ function ColorField({ label, hint, className, presets, value, onPick, preview, d
   }, [value])
   return (
     <SettingTile
-      className={cn('bg-card', disabled && 'opacity-50', className)}
+      // 禁用不降整块透明度：色块瓦的职责就是显示颜色，压半后屏上色≠切换后的真色；
+      // 禁用已由 aria-disabled + pointer-events-none + 原生 disabled 表达
+      className={cn('bg-card', className)}
       aria-disabled={disabled || undefined}
       label={
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
@@ -212,7 +214,7 @@ function SliderField({ label, display, min, max, step, value, overridden, onRese
                 title={resetTitle}
                 aria-label={resetTitle}
                 onClick={onReset}
-                className={cn(FADE, 'grid size-6 place-items-center rounded-md border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground')}
+                className={cn(FADE, 'grid size-6 place-items-center rounded-md border text-muted-foreground transition-[color,background-color,opacity] hover:bg-accent hover:text-foreground')}
               >
                 <RotateCcw className="size-3.5" />
               </button>
@@ -296,6 +298,7 @@ export function SettingsPage() {
       window.removeEventListener('resize', spy)
     }
   }, [])
+  const flashT = useRef(0)
   const jump = (sid: string) => {
     const el = document.getElementById(sid)
     if (!el) return
@@ -315,11 +318,24 @@ export function SettingsPage() {
       }
       sc.addEventListener('wheel', release, { passive: true, signal: ac.signal })
       sc.addEventListener('pointerdown', release, { signal: ac.signal })
+      // 键盘滚动同样是手动滚动：不接管的话点锚点后按 PageDown，高亮 1.2s 内说谎
+      sc.addEventListener('keydown', ev => {
+        const e = ev as KeyboardEvent
+        if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) release(e)
+      }, { signal: ac.signal })
     }
     el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
     setActiveSec(sid)
-    el.setAttribute('data-flash', '')
-    window.setTimeout(() => el.removeAttribute('data-flash'), 600)
+    // 重入重启闪光：属性已在时再 set 不会重播 keyframes，孤儿 timeout 还会提前剥掉进行中的闪光
+    clearTimeout(flashT.current)
+    el.removeAttribute('data-flash')
+    requestAnimationFrame(() => {
+      el.setAttribute('data-flash', '')
+      flashT.current = window.setTimeout(() => el.removeAttribute('data-flash'), 600)
+    })
+    // 落点=焦点落点（WCAG 2.4.3）：否则 Enter 激活锚点后 Tab 会从导航重扫全部卡片
+    el.tabIndex = -1
+    el.focus({ preventScroll: true })
   }
 
   return (
@@ -402,7 +418,12 @@ export function SettingsPage() {
                           className="size-3 shrink-0 rounded-full border border-black/10 dark:border-white/20"
                           style={{ background: `linear-gradient(135deg, ${th.swatch.background} 50%, ${th.swatch.primary} 50%)` }}
                         />
-                        {th.id.charAt(0).toUpperCase() + th.id.slice(1)}
+                        {/* tokens 新增主题而词条未跟上时 t() 原样返回 key → 回退美化 id */}
+                        {(() => {
+                          const k = `settings:themeName-${th.id}`
+                          const v = t(k)
+                          return v === k ? th.id.charAt(0).toUpperCase() + th.id.slice(1) : v
+                        })()}
                       </span>
                     </SelectItem>
                   ))}
