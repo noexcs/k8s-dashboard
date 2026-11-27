@@ -33,6 +33,7 @@ import { ChartsTab, RepositoriesTab } from './RepoChartsTab'
 import { InstallChartDialog, type HelmDialogTarget } from './InstallChartDialog'
 import type { K8sObject } from '@/api/types'
 import { fmtTime, shortTime } from '@/lib/format'
+import { LIST_GRID_HEADER, LIST_GRID_ROW } from '@/lib/listGrid'
 import { cn } from '@/lib/utils'
 import { useHighlightedCode } from '@/hooks/use-highlighted-code'
 import { Button } from '@/components/ui/button'
@@ -64,6 +65,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+// grid 列模板（布局专属，表头/行样式统一走 lib/listGrid 共享常量）
+const REL_COLS = 'grid-cols-[minmax(160px,1.4fr)_minmax(110px,1fr)_minmax(120px,1.2fr)_90px_minmax(110px,0.9fr)_56px_110px_64px]'
+const HIST_COLS = 'grid-cols-[64px_minmax(120px,1fr)_minmax(160px,1.4fr)_150px_90px]'
 
 const POLL_MS = 30_000
 
@@ -221,6 +226,7 @@ function HelmListPage({ cluster }: { cluster: string }) {
         </Alert>
       )}
 
+      {/* 列模板留在本页（布局专属），表头/行样式走 LIST_GRID_*（与 ResourceDataTable 底座同源） */}
       <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-card">
         {isLoading ? (
           <div className="flex h-full min-h-32 items-center justify-center gap-2 text-[13px] text-muted-foreground">
@@ -232,7 +238,7 @@ function HelmListPage({ cluster }: { cluster: string }) {
             {filter ? t('sys:noMatchingRelease') : t('sys:noReleasesInNs')}
           </div>
         ) : (
-          <div className="grid h-8 grid-cols-[minmax(160px,1.4fr)_minmax(110px,1fr)_minmax(120px,1.2fr)_90px_minmax(110px,0.9fr)_56px_110px_64px] items-center gap-2 border-b bg-muted/40 px-3 text-[13px] font-medium text-muted-foreground">
+          <div className={cn('grid', REL_COLS, LIST_GRID_HEADER)}>
             <span>{t('sys:colName')}</span>
             <span>{t('sys:colNamespace')}</span>
             <span>{t('helm:colChart')}</span>
@@ -252,7 +258,7 @@ function HelmListPage({ cluster }: { cluster: string }) {
             onKeyDown={e => {
               if (e.key === 'Enter') navigate(`/c/${cluster}/helm/${r.namespace}/${r.name}`)
             }}
-            className="grid h-8 cursor-pointer grid-cols-[minmax(160px,1.4fr)_minmax(110px,1fr)_minmax(120px,1.2fr)_90px_minmax(110px,0.9fr)_56px_110px_64px] items-center gap-2 border-b border-border/40 px-3 text-[13px] transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            className={cn('grid cursor-pointer', REL_COLS, LIST_GRID_ROW, 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40')}
           >
             <span className="truncate font-medium" title={r.name}>
               {r.name}
@@ -501,7 +507,7 @@ function HelmDetailPage({ cluster, ns, name }: { cluster: string; ns: string; na
 
         <TabsContent value="history" className="mt-2 min-w-0 flex-1">
           <div className="overflow-hidden rounded-lg border bg-card">
-            <div className="grid h-8 grid-cols-[64px_minmax(120px,1fr)_minmax(160px,1.4fr)_150px_90px] items-center gap-2 border-b bg-muted/40 px-3 text-[13px] font-medium text-muted-foreground">
+            <div className={cn('grid', HIST_COLS, LIST_GRID_HEADER)}>
               <span>{t('sys:colRevision')}</span>
               <span>{t('sys:colStatus')}</span>
               <span>{t('sys:colDescription')}</span>
@@ -511,7 +517,7 @@ function HelmDetailPage({ cluster, ns, name }: { cluster: string; ns: string; na
             {history.map(h => (
               <div
                 key={h.version}
-                className="grid h-8 grid-cols-[64px_minmax(120px,1fr)_minmax(160px,1.4fr)_150px_90px] items-center gap-2 border-b border-border/40 px-3 text-[13px] last:border-b-0"
+                className={cn('grid last:border-b-0', HIST_COLS, LIST_GRID_ROW)}
               >
                 <span className="font-medium tabular-nums">
                   {h.version}

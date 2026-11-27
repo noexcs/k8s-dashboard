@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { shortTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { RESOURCE_MAP, detailRoute } from '@/resources/registry'
@@ -30,7 +31,6 @@ interface AuditEntry {
   mode?: string
 }
 
-const GRID = 'grid grid-cols-[132px_64px_112px_minmax(0,1fr)_110px] gap-2'
 /** 账面 verb → i18n 标签。工具类复用 AI 页 ai:tool* 键（两页同词），审批/处置/交接类走 audit:verb*；
  *  未知 verb 原样显示（后端新增工具时账面不空洞），mono 原文留 title */
 const VERB_LABELS: Record<string, string> = {
@@ -197,33 +197,46 @@ export function ChangeLogPage() {
           </AlertTitle>
         </Alert>
       )}
-      <div className={cn('min-h-0 flex-1 overflow-auto transition-opacity', q.isPlaceholderData && 'opacity-60')} role="table" aria-label={t('audit:title')}>
-        <div className={cn(GRID, 'sticky top-0 z-10 h-8 items-center border-b bg-card px-3 text-[13px] font-medium text-muted-foreground')} role="row">
-          <span role="columnheader">{t('audit:colTime')}</span>
-          <span role="columnheader">{t('audit:colSource')}</span>
-          <span role="columnheader">{t('audit:colAction')}</span>
-          <span role="columnheader">{t('audit:colTarget')}</span>
-          <span role="columnheader">{t('audit:colActor')}</span>
-        </div>
-          {q.isPending && (
-          <div className="space-y-2 p-4">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-2/3" />
-          </div>
+      <div className={cn('min-h-0 flex-1 overflow-auto transition-opacity', q.isPlaceholderData && 'opacity-60')}>
+        {/* 与其他列表同底座（ResourceDataTable 同款裸 table + ui/table 件）：sticky h-10 表头、同字号 */}
+        <table className="w-full table-fixed caption-bottom text-sm" aria-label={t('audit:title')}>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="sticky top-0 z-10 h-10 bg-card px-3" style={{ width: 132 }}>{t('audit:colTime')}</TableHead>
+            <TableHead className="sticky top-0 z-10 h-10 bg-card px-3" style={{ width: 64 }}>{t('audit:colSource')}</TableHead>
+            <TableHead className="sticky top-0 z-10 h-10 bg-card px-3" style={{ width: 112 }}>{t('audit:colAction')}</TableHead>
+            <TableHead className="sticky top-0 z-10 h-10 bg-card px-3">{t('audit:colTarget')}</TableHead>
+            <TableHead className="sticky top-0 z-10 h-10 bg-card px-3" style={{ width: 110 }}>{t('audit:colActor')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+        {q.isPending && (
+          <TableRow className="hover:bg-transparent">
+            <TableCell colSpan={5} className="px-3 py-4">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-2/3" />
+              </div>
+            </TableCell>
+          </TableRow>
         )}
         {rows.length === 0 && !q.isPending && (
-          // 全站 Empty 规范：两种语义（从未有记录 / 过滤无匹配）文案分岔，几何一致
-          <Empty className="py-10">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <History />
-              </EmptyMedia>
-              {/* 空态三分岔：窗口内零条数≠「审计从头累积起就没人改过」——班次窗把账面圈小了，
-                  空表话术必须跟着窗口的口径走，否则会诱导值班在交接后误宣「整班零变更」 */}
-              <EmptyTitle>{q.data && q.data.length > 0 ? t('audit:noMatch') : timeWin !== 'all' ? t('audit:emptyWindow') : t('audit:empty')}</EmptyTitle>
-              {q.data && q.data.length > 0 && <EmptyDescription>{t('audit:noMatchDesc')}</EmptyDescription>}
-            </EmptyHeader>
-          </Empty>
+          <TableRow className="hover:bg-transparent">
+            <TableCell colSpan={5}>
+              {/* 全站 Empty 规范：两种语义（从未有记录 / 过滤无匹配）文案分岔，几何一致 */}
+              <Empty className="py-10">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <History />
+                  </EmptyMedia>
+                  {/* 空态三分岔：窗口内零条数≠「审计从头累积起就没人改过」——班次窗把账面圈小了，
+                      空表话术必须跟着窗口的口径走，否则会诱导值班在交接后误宣「整班零变更」 */}
+                  <EmptyTitle>{q.data && q.data.length > 0 ? t('audit:noMatch') : timeWin !== 'all' ? t('audit:emptyWindow') : t('audit:empty')}</EmptyTitle>
+                  {q.data && q.data.length > 0 && <EmptyDescription>{t('audit:noMatchDesc')}</EmptyDescription>}
+                </EmptyHeader>
+              </Empty>
+            </TableCell>
+          </TableRow>
         )}
         {rows.map(e => {
           // 有 kind+name 的条目一跳进详情（意图层→对象层；旧条目无 kind 保持纯文本）
@@ -235,35 +248,37 @@ export function ChangeLogPage() {
           if (brief && /^\s*\{.*\}\s*$/.test(brief)) brief = ''
           // key 不含行号：15s 轮询插入新行时老行 DOM 必须复用，否则整表 remount、行内链接焦点每 15s 清零
           return (
-            <div key={`${e.ts}|${e.verb}|${e.target ?? ''}`} role="row" className={cn(GRID, 'h-12 items-center border-b border-border/50 px-3 text-[13px] animate-in fade-in-0 duration-150 hover:bg-accent/40')}>
-              <span role="cell" className="font-mono text-muted-foreground">{shortTime(e.ts, true)}</span>
-              <span role="cell"><Badge variant={e.source === 'ai' ? 'default' : 'secondary'} className="w-fit">
-                {e.source === 'ai' ? 'AI' : t('audit:sourceUi')}
-              </Badge></span>
-              <span role="cell" className={cn('flex min-w-0 items-center gap-1 text-xs', DESTRUCTIVE[e.verb ?? ''] && 'text-caution')}>
-                <span className="truncate" title={e.verb}>{verbLabel(e.verb ?? '')}</span>
+            <TableRow key={`${e.ts}|${e.verb}|${e.target ?? ''}`} className="h-12 animate-in fade-in-0 duration-150">
+              <TableCell className="px-3 font-mono text-muted-foreground">{shortTime(e.ts, true)}</TableCell>
+              <TableCell className="px-3">
+                <Badge variant={e.source === 'ai' ? 'default' : 'secondary'} className="w-fit">
+                  {e.source === 'ai' ? 'AI' : t('audit:sourceUi')}
+                </Badge>
+              </TableCell>
+              <TableCell className={cn('min-w-0 px-3 text-xs', DESTRUCTIVE[e.verb ?? ''] && 'text-caution')}>
+                <span className="block truncate" title={e.verb}>{verbLabel(e.verb ?? '')}</span>
                 {e.source === 'ai' && e.mode === 'full' && (
-                  <span className="shrink-0 rounded bg-caution/15 px-1 text-[11px] leading-4 text-caution-on-primary" title={t('audit:modeFullTitle')} aria-label={t('audit:modeFullTitle')}>
+                  <span className="mt-0.5 inline-block rounded bg-caution/15 px-1 text-[11px] leading-4 text-caution-on-primary" title={t('audit:modeFullTitle')} aria-label={t('audit:modeFullTitle')}>
                     {t('audit:modeDirect')}
                   </span>
                 )}
-              </span>
-              {/* 常驻第二行（无 summary 也占位）：行高统一 GRID 节奏不破；触屏/键盘可达，tooltip 留全文 */}
-              <div role="cell" className="flex min-w-0 flex-col gap-0.5">
+              </TableCell>
+              {/* 常驻第二行（无 summary 也占位）：行高统一节奏不破；触屏/键盘可达，tooltip 留全文 */}
+              <TableCell className="min-w-0 px-3">
                 {link ? (
-                  <NavLink to={link} className="min-w-0 truncate font-mono text-[13px] hover:underline" title={e.summary ? `${e.target}\n${e.summary}` : e.target}>
+                  <NavLink to={link} className="block min-w-0 truncate font-mono text-[13px] hover:underline" title={e.summary ? `${e.target}\n${e.summary}` : e.target}>
                     {e.target ?? '–'}
                     {e.cluster ? <span className="ml-1.5 text-xs text-muted-foreground">@{e.cluster}</span> : null}
                   </NavLink>
                 ) : (
-                  <span className="min-w-0 truncate font-mono text-[13px]" title={e.summary ? `${e.target}\n${e.summary}` : e.target}>
+                  <span className="block min-w-0 truncate font-mono text-[13px]" title={e.summary ? `${e.target}\n${e.summary}` : e.target}>
                     {e.target ?? '–'}
                     {e.cluster ? <span className="ml-1.5 text-xs text-muted-foreground">@{e.cluster}</span> : null}
                   </span>
                 )}
-                <span className="truncate text-xs leading-4 text-muted-foreground" title={e.summary ?? ''} suppressHydrationWarning>{brief ?? ''}</span>
-              </div>
-              <span role="cell" className="min-w-0 truncate text-xs text-muted-foreground">
+                <span className="block truncate text-xs leading-4 text-muted-foreground" title={e.summary ?? ''} suppressHydrationWarning>{brief ?? ''}</span>
+              </TableCell>
+              <TableCell className="min-w-0 truncate px-3 text-xs text-muted-foreground">
                 {e.source === 'ai' && e.actor ? (
                   // AI 条目回链源会话：从「什么改了」一键回到「为什么要改」的对话现场
                   <NavLink to={`/c/${encodeURIComponent(e.cluster ?? '')}/ai?session=${encodeURIComponent(e.actor)}`} className="font-mono hover:underline" title={e.actor}>
@@ -273,10 +288,12 @@ export function ChangeLogPage() {
                   // UI 行不复读来源列（「面板」已在左列）；无署名留白——整列「–」是占位噪声不是信息
                   e.actor ?? ''
                 )}
-              </span>
-            </div>
+              </TableCell>
+            </TableRow>
           )
         })}
+        </TableBody>
+        </table>
       </div>
     </div>
   )

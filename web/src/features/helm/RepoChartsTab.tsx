@@ -15,6 +15,7 @@ import {
 } from '@/api/helm'
 import { tf, useT } from '@/i18n'
 import { cn } from '@/lib/utils'
+import { LIST_GRID_HEADER, LIST_GRID_ROW } from '@/lib/listGrid'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -30,6 +31,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { InstallChartDialog, compareVersionsDesc, type HelmDialogTarget } from './InstallChartDialog'
+
+// grid 列模板（布局专属，表头/行样式统一走 lib/listGrid 共享常量）
+const CHART_COLS = 'grid-cols-[28px_minmax(160px,1.4fr)_minmax(200px,2fr)_110px_90px_minmax(120px,1fr)_72px]'
+const REPO_COLS = 'grid-cols-[minmax(120px,0.8fr)_minmax(240px,2fr)_180px]'
 
 const CHARTS_STALE_MS = 60_000
 
@@ -178,7 +183,7 @@ export function ChartsTab({
               <div className="flex h-full min-h-32 items-center justify-center p-8 text-center text-[13px] text-muted-foreground">{t('helm:emptyCharts')}</div>
             ) : (
               <>
-                <div className="grid h-8 grid-cols-[28px_minmax(160px,1.4fr)_minmax(200px,2fr)_110px_90px_minmax(120px,1fr)_72px] items-center gap-2 border-b bg-muted/40 px-3 text-[13px] font-medium text-muted-foreground">
+                <div className={cn('grid', CHART_COLS, LIST_GRID_HEADER)}>
                   <span />
                   <span>{t('sys:colName')}</span>
                   <span>{t('sys:colDescription')}</span>
@@ -192,7 +197,7 @@ export function ChartsTab({
                   const latest = g.versions[0]
                   return (
                     <div key={g.name} className="border-b border-border/40 last:border-b-0">
-                      <div className="grid h-8 grid-cols-[28px_minmax(160px,1.4fr)_minmax(200px,2fr)_110px_90px_minmax(120px,1fr)_72px] items-center gap-2 px-3 text-[13px] transition-colors hover:bg-accent/50">
+                      <div className={cn('grid', CHART_COLS, LIST_GRID_ROW)}>
                         <button
                           type="button"
                           aria-label={open ? t('helm:collapseVersions') : t('helm:expandVersions')}
@@ -402,7 +407,7 @@ export function RepositoriesTab({ cluster }: { cluster: string }) {
           <div className="flex h-full min-h-32 items-center justify-center p-8 text-center text-[13px] text-muted-foreground">{t('helm:emptyRepos')}</div>
         ) : (
           <>
-            <div className="grid h-8 grid-cols-[minmax(120px,0.8fr)_minmax(240px,2fr)_180px] items-center gap-2 border-b bg-muted/40 px-3 text-[13px] font-medium text-muted-foreground">
+            <div className={cn('grid', REPO_COLS, LIST_GRID_HEADER)}>
               <span>{t('sys:colName')}</span>
               <span>{t('helm:repoUrl')}</span>
               <span className="text-right">{t('helm:colAction')}</span>
@@ -411,7 +416,9 @@ export function RepositoriesTab({ cluster }: { cluster: string }) {
               <div
                 key={r.name}
                 className={cn(
-                  'grid h-8 grid-cols-[minmax(120px,0.8fr)_minmax(240px,2fr)_180px] items-center gap-2 border-b border-border/40 px-3 text-[13px] last:border-b-0',
+                  'grid last:border-b-0',
+                  REPO_COLS,
+                  LIST_GRID_ROW,
                   refreshIndex.isPending && refreshIndex.variables?.name === r.name && 'opacity-60',
                 )}
               >

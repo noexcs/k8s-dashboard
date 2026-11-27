@@ -120,7 +120,7 @@ export const STRINGS_SYS: Record<string, Entry> = {
   'sys:colCount': { zh: '次数', en: 'Count' },
   'sys:colLast': { zh: '最后', en: 'Last' },
   'sys:colReasonMsg': { zh: '原因 / 消息', en: 'Reason / Message' },
-  'sys:noEvents': { zh: '暂无事件', en: 'No events' },
+  'sys:filterEventsPh': { zh: '过滤事件', en: 'Filter events' },
   'sys:eventsMerged': { zh: '{n} 条同对象同原因事件已折叠', en: '{n} identical events on this object merged' },
   'sys:onlyBad': { zh: '仅看异常·未认领 {n}', en: 'Abnormal & unclaimed ({n})' },
   'sys:onlyBadUnack': { zh: '未认领异常 {n}（共 {total}）', en: 'Unacknowledged {n} of {total}' },
