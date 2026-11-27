@@ -33,8 +33,8 @@ export function normalizeModelEntry(m) {
 
 /**
  * Provider 项校验（llmProviders 数组的单项）。
- * apiKey 三态：字符串=新值；'__KEEP__'=保留盘上同 id 旧项的 key（前端编辑时留空即此，
- * 密钥永不经 GET 回显，编辑表单拿不到明文）；缺省=空串（无鉴权）。
+ * apiKey 语义：字符串=新值；'__KEEP__'=保留盘上同 id 旧项的 key（前端编辑时留空即此，
+ * 密钥永不经 GET 回显，编辑表单拿不到明文）；字段缺失=视图回传原样保留；空串=显式无鉴权。
  * @param {unknown} raw @param {any[]} list 旧 llmProviders（KEEP 合并用）
  * @returns {{ ok: true, item: any } | { ok: false, error: string }}
  */
@@ -57,6 +57,10 @@ function validateProvider(raw, list) {
   let apiKey = ''
   if (it.apiKey === '__KEEP__') apiKey = String(old?.apiKey ?? '')
   else if (typeof it.apiKey === 'string') apiKey = it.apiKey
+  // apiKey 字段整个缺失 = 该条目是 GET 视图形态原样回传（视图只有 hasKey 没有密钥明文）。
+  // 整表替换下这必须等于「保留原密钥」——否则编辑 A 会把 B 的密钥抹成空（实测事故:
+  // 列表里其他 provider 全部静默 401）。要显式清密钥走空字符串,两者语义不可混。
+  else apiKey = String(old?.apiKey ?? '')
   const id = /^[a-z0-9][a-z0-9-]{3,31}$/.test(String(it.id ?? '')) ? String(it.id) : cryptoRandomId()
   return { ok: true, item: { id, name, baseUrl, api, apiKey, models } }
 }
