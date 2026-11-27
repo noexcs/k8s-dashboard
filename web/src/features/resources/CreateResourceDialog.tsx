@@ -344,7 +344,7 @@ export function CreateResourceDialog({
           {/* 编辑器 auto-grow：内容短则弹窗收缩，到 85vh 封顶才轮到 wrapper 滚动；
               min-h-48 给空白态保底高度，避免一两条内容撑成细长条 */}
           <div className="min-h-0 flex-1 overflow-auto pb-2">
-            <YamlEditor className="min-h-48" value={text} onChange={setText} title={t('res:createTitle')} filename="create.yaml" />
+            <YamlEditor className="min-h-48" value={text} onChange={setText} title={t('res:createTitle')} filename="create.yaml" hideTitle />
           </div>
         </div>
         <DialogFooter>

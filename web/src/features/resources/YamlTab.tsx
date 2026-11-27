@@ -2,7 +2,7 @@
 // 乐观锁由 API server 校验 resourceVersion；409 → conflict 对话框让用户重新加载。
 // 查询缓存 key ['yaml', cluster, path] 与页面无关，同一路径跨页共享。
 import { FileCodeIcon } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { parse } from 'yaml'
 import { ApiError, getAsYaml, putObject } from '@/api/client'
@@ -113,17 +113,25 @@ export function useYamlEdit({ cluster, path }: { cluster: string; path: string }
  * 高亮 span 本身不可编辑（contentEditable 会切碎 token、光标需手动重算），
  * 这是 CodeMirror/Monaco 之外的轻量等价方案。
  */
-export function YamlEditor({ value, onChange, title, filename, className }: {
+export function YamlEditor({ value, onChange, title, filename, className, hideTitle }: {
   value: string
   onChange: (v: string) => void
   title: string
   filename: string
   /** 追加到 CodeBlock 根（对话框里传 min-h-48 给空白态保底高度） */
   className?: string
+  /** 对话框自带标题时隐藏编辑器标题行文字（避免与 Dialog 标题重复），工具行保留 */
+  hideTitle?: boolean
 }) {
   const t = useT()
-  // 与详情页 YAML 查看区同一套工具行（下载/复制）；软换行不提供——双层结构下必错位
-  const { actions } = useCodeActions(value, filename, { wrapToggle: false })
+  // 与详情页 YAML 查看区同一套工具行（软换行/下载/复制）。
+  // 软换行在双层结构下可行的三个前提（缺一必重影，2026-11 实测）：
+  // ① 高亮 grid 内容列 minmax(0,1fr)——1fr 的 auto 下限=min-content，
+  //    40KB 单词会把列撑到内容宽，pre-wrap 也永远不折；
+  // ② 行号列 before:min-w-0——列宽=位数×1ch，与 textarea padding 的 ch 公式同值
+  //    （官方 min-w-6=24px 与 3ch≈21.6px 差 2.4px，折行后每行放大成漂移）；
+  // ③ wrap 态 textarea 高度=scrollHeight 实测值——rows×单行高装不下折行数
+  const { wrap, actions } = useCodeActions(value, filename)
   const lines = useHighlightedCode(value, 'yaml')
   // bg 是 absolute 不撑开宽度；textarea 的 cols 决定 code 的 min-w-max →
   // pre 横向滚动条必须覆盖到最长行，两层才能一起滚到行尾
@@ -133,11 +141,31 @@ export function YamlEditor({ value, onChange, title, filename, className }: {
   const numDigits = String(Math.max(1, lines.length)).length
   const taRef = useRef<HTMLTextAreaElement>(null)
   const [composing, setComposing] = useState(false)
+  // 前提③：wrap 态 rows×单行高装不下折行数——用 scrollHeight 实测撑出真实高度；
+  // 观察父级（宽度源头）而非自身，避免「改高→RO→改高」反馈环
+  useLayoutEffect(() => {
+    const ta = taRef.current
+    if (!ta) return
+    if (!wrap) {
+      ta.style.height = ''
+      return
+    }
+    const fit = () => {
+      ta.style.height = 'auto'
+      ta.style.height = `${ta.scrollHeight}px`
+    }
+    fit()
+    const target = ta.parentElement ?? ta
+    const ro = new ResizeObserver(fit)
+    ro.observe(target)
+    return () => ro.disconnect()
+  }, [value, wrap])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value)
     // 光标移出滚动视口时跟随：向上找第一个真正滚动的祖先（tab 面板）
     const ta = taRef.current
+    if (wrap) return // 软换行下行高≠单倍 lh，跟随会漂；且换行态无横向跟随意义
     let scroller = ta?.parentElement?.parentElement ?? null
     while (scroller && scroller.scrollHeight <= scroller.clientHeight) scroller = scroller.parentElement
     if (ta && scroller) {
@@ -156,18 +184,19 @@ export function YamlEditor({ value, onChange, title, filename, className }: {
     <CodeBlock className={className}>
       <CodeBlockHeader>
         <CodeBlockTitle>
-          <FileCodeIcon />
-          {title}
+          {!hideTitle && <FileCodeIcon />}
+          {!hideTitle && title}
         </CodeBlockTitle>
         {actions}
       </CodeBlockHeader>
       <CodeBlockContent
         lineNumbers
+        wrap={wrap}
         className="[&>code]:block [&>code]:relative"
       >
         {/* auto 行号列 + content-start，与预览官方 grid 完全同款：
             行号列宽随行号位数撑开；定高 grid 不拉伸 auto 行（拉伸会使行距漂移 0.12px/行） */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 grid grid-cols-[auto_1fr] content-start">
+        <div aria-hidden className={cn('pointer-events-none absolute inset-0 grid grid-cols-[auto_minmax(0,1fr)] content-start [&_[data-slot=code-block-line]]:before:min-w-0', wrap && 'whitespace-pre-wrap [overflow-wrap:anywhere]')}>
           {lines.map((line, i) => (
             <CodeBlockLine key={i}>{line}</CodeBlockLine>
           ))}
@@ -177,10 +206,10 @@ export function YamlEditor({ value, onChange, title, filename, className }: {
           value={value}
           onChange={handleChange}
           rows={Math.max(1, value.split('\n').length)}
-          cols={Math.max(20, maxLine + 1)}
+          cols={wrap ? 20 : Math.max(20, maxLine + 1)}
           onCompositionStart={() => setComposing(true)}
           onCompositionEnd={() => setComposing(false)}
-          wrap="off"
+          wrap={wrap ? 'soft' : 'off'}
           spellCheck={false}
           aria-label={t('res:editingHint')}
           style={{ paddingLeft: `calc(${numDigits}ch + 12px)` }}
@@ -209,7 +238,8 @@ export function YamlView({ yamlText, kind, name }: { yamlText: string; kind: str
         </CodeBlockTitle>
         {actions}
       </CodeBlockHeader>
-      <CodeBlockContent lineNumbers wrap={wrap}>
+      {/* 行号列与 YamlEditor 同一 ch 公式(去 min-w-6 下限)：两态文字起点分毫一致 */}
+      <CodeBlockContent lineNumbers wrap={wrap} className="[&_[data-slot=code-block-line]]:before:min-w-0">
         {lines.map((line, i) => (
           <CodeBlockLine key={i}>{line}</CodeBlockLine>
         ))}

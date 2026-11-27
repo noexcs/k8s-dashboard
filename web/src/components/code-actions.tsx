@@ -19,29 +19,24 @@ function download(value: string, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-export function useCodeActions(value: string, filename?: string, opts?: { wrapToggle?: boolean }) {
+export function useCodeActions(value: string, filename?: string) {
   const t = useT()
   const [wrap, setWrap] = React.useState(false)
-  // 双层编辑器（透明 textarea+高亮 overlay）禁用软换行：textarea 折行数≠高亮层
-  // 逻辑行数，长行一出现两层即错位重影（YamlEditor 实测 40KB 行 562 对 1 行）
-  const wrapToggle = opts?.wrapToggle ?? true
 
   return {
-    wrap: wrapToggle ? wrap : false,
+    wrap,
     actions: (
       <CodeBlockActions>
-        {wrapToggle && (
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={t("sys:wrapLines")}
-            aria-pressed={wrap}
-            className="aria-pressed:text-foreground"
-            onClick={() => setWrap(!wrap)}
-          >
-            <WrapTextIcon />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label={t("sys:wrapLines")}
+          aria-pressed={wrap}
+          className="aria-pressed:text-foreground"
+          onClick={() => setWrap(!wrap)}
+        >
+          <WrapTextIcon />
+        </Button>
         <Button
           variant="ghost"
           size="icon-xs"
