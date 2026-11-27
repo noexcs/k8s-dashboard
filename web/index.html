@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>K8S Dashboard</title>
+    <script>
+      // 主题前置应用：module script 延迟执行会先闪一帧错误配色，
+      // 首帧 paint 前按 localStorage['k8s-theme']（缺省跟随系统）落 html.dark
+      try {
+        var s = localStorage.getItem('k8s-theme')
+        var dark = s === 'light' ? false : s === 'dark' ? true : matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.classList.toggle('dark', dark)
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  // 源码即运行的 JS（@ts-check + JSDoc 类型），tsc 只做严格类型检查、不产出文件。
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["server.js", "lib/**/*.js"]
+}

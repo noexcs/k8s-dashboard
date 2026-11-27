@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    groups:
+      web-deps:
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    directory: /ai-exec
+    schedule:
+      interval: weekly
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directories:
+      - /
+    schedule:
+      interval: weekly

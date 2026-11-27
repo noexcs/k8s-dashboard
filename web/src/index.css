@@ -1,0 +1,885 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+ * 主题：ink 冷调中性 ramp（unslop direction「夜班控制室」）。
+ * 世界=终端与监控盘 → 中性色向蓝墨微染（饱和度极低，任何表面
+ * 都不读作彩色）；语义色三档 positive/negative/caution 用
+ * unslop 标定值，仅承载含义；强调色 = primary 单点。
+ * 原 shadcn neutral 默认主题已整体替换（2026-11-25）。
+ * ============================================================ */
+
+:root {
+  color-scheme: light;
+  --radius: 0.625rem;
+  /* ink ramp（light） */
+  --background: #f5f7fa;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #111827;
+  --primary-foreground: #f5f7fa;
+  --secondary: #eceff4;
+  --secondary-foreground: #111827;
+  --muted: #eceff4;
+  --muted-foreground: #646d7f;
+  --accent: #eceff4;
+  --accent-foreground: #111827;
+  /* 语义色（light 标定值；positive 取 green-700：作文字色对白底
+     #fff/#f5f7fa 达 WCAG AA 4.5:1，green-600 只有 3.3:1） */
+  --positive: #166534;
+  --negative: #b91c1c;
+  --caution: #92400e;
+  --caution-on-primary: #8a3f07;
+  --ink-on-muted: #5b6475;
+  --destructive: #dc2626;
+  --destructive-on-primary: #a4161a;
+  --destructive-foreground: #ffffff;
+  /* 发丝线 = 主文本色 8% */
+  --border: #11182714;
+  --input: #1118271f;
+  --ring: #6b7487;
+  /* 图表：语义优先——Running=positive、Warning 态=caution、
+     Failed=negative；纯分类序列用中性阶（ink ramp），accent 不撒。
+     chart-5 保留品牌蓝，仅 sidebar-primary 的"当前集群"标记用。 */
+  --chart-1: var(--positive);
+  /* 柱填充=muted ramp 但按图形对象单独标定(审计 med):此前=muted-foreground
+     #646d7f,与相邻 amber 堆叠段(#92400e)亮度比仅 1.36:1,缺口段「融」进灰柱。
+     提到 ramp 上一档 #98a1b0(亮度差≈2.7 + 强色相分层);序列线(mem)已改走
+     --muted-foreground 文本墨档,不再借 chart-2,亮灰不伤线条对比 */
+  --chart-2: #98a1b0;
+  --chart-3: var(--caution);
+  --chart-4: var(--negative);
+  --chart-5: #8a93a6;
+  --sidebar: #eef1f6;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #111827;
+  --sidebar-primary-foreground: #f5f7fa;
+  --sidebar-accent: #e3e8ef;
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: #11182714;
+  --sidebar-ring: #6b7487;
+  --surface: #f0f3f7;
+  --surface-foreground: var(--foreground);
+  --code: var(--surface);
+  --code-foreground: var(--surface-foreground);
+  --code-highlight: #e7ebf1;
+  --code-number: #6b7487;
+  --selection: #111827;
+  --selection-foreground: #f5f7fa;
+}
+
+.dark {
+  color-scheme: dark;
+  /* ink ramp（dark）：deepest sidebar / page / card / raised 四级 */
+  --background: #0b0d14;
+  --foreground: #eef0f5;
+  --card: #11141c;
+  --card-foreground: #eef0f5;
+  --popover: #11141c;
+  --popover-foreground: #eef0f5;
+  --primary: #e3e6ee;
+  --primary-foreground: #11141c;
+  --secondary: #1a1e28;
+  --secondary-foreground: #eef0f5;
+  --muted: #1a1e28;
+  --muted-foreground: #a3a9b8;
+  --accent: #232936;
+  --accent-foreground: #eef0f5;
+  /* 语义色（dark 标定值） */
+  --positive: #4cc38a;
+  --negative: #e5484d;
+  --caution: #d0a215;
+  --caution-on-primary: var(--caution);
+  --ink-on-muted: var(--muted-foreground);
+  --destructive: #e5484d;
+  --destructive-on-primary: #f0565b;
+  --destructive-foreground: #ffffff;
+  /* 发丝线 = 主文本色 8% */
+  --border: #eef0f514;
+  --input: #eef0f51f;
+  --ring: #7a8296;
+  /* 图表：同 light 的语义映射，dark 用对应标定 */
+  --chart-1: var(--positive);
+  --chart-2: #a3a9b8;
+  /* 柱/面积填充用降饱和琥珀:文字用 caution(#d0a215)在大块填充上刺眼,
+     语义色要压进调色板;文本色不动,仅图表独立 */
+  --chart-3: #a1620a;
+  --chart-4: var(--negative);
+  --chart-5: #6f7891;
+  --sidebar: #07080d;
+  --sidebar-foreground: #eef0f5;
+  --sidebar-primary: #1447e6;
+  --sidebar-primary-foreground: #f5f7fa;
+  --sidebar-accent: #1a1e28;
+  --sidebar-accent-foreground: #eef0f5;
+  --sidebar-border: #eef0f514;
+  --sidebar-ring: #7a8296;
+  --surface: #0e1119;
+  --surface-foreground: #a3a9b8;
+  --code: var(--surface);
+  --code-foreground: var(--surface-foreground);
+  --code-highlight: #1a1e28;
+  --code-number: #7a8296;
+  --selection: #e3e6ee;
+  --selection-foreground: #11141c;
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  /* 本页主数字/标识符字体：mono 使用率极高（h1/镜像/env/表格），出厂 ui-monospace
+     跨机不一致——Geist 官方 mono 伙伴，与 sans 同人格。 */
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* 唯一缓动对（unslop tokens）：enter/强动画用 strong（指数 ease-out），
+     位移用 in-out。此前两处 var 引用悬空（token 从未定义）→ flash/浮层缓动整链静默失效。 */
+  --ease-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  /* 语义色工具类（bg-positive/10、text-caution 等，alpha 走 color-mix） */
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-caution: var(--caution);
+  --color-caution-on-primary: var(--caution-on-primary);
+  --color-destructive-on-primary: var(--destructive-on-primary);
+  --color-ink-on-muted: var(--ink-on-muted);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-code: var(--code);
+  --color-code-foreground: var(--code-foreground);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme inline {
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  /* 选区主题化：--selection token 落地（此前定义了从未生效） */
+  ::selection {
+    background-color: var(--selection);
+    color: var(--selection-foreground);
+  }
+}
+
+/* ============================================================
+ * 以下为手动落盘 registry 时遗漏的 CSS（组件已引用但此前无定义）。
+ * 来源：
+ *   [A] shadcn monorepo (github.com/shadcn-ui/ui)
+ *       apps/v4/registry/styles/style-nova.css（style=radix-nova 的组件类）
+ *   [B] shadcn monorepo apps/v4/app/globals.css + apps/v4/registry/themes.ts
+ *       （sidebar 颜色 token，本文件主题变量同源）
+ *   [C] npm 包 shadcn@4.23.0 的 dist/tailwind.css
+ *       （radix base registry 声明的基础 CSS，含 no-scrollbar / shimmer）
+ * ============================================================ */
+
+/* ---- [C] no-scrollbar：隐藏滚动条（command ⌘K 列表、combobox、sidebar 等引用）---- */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ---- [C] shimmer / shimmer-none：文本流光动画（trace 运行中标题、attachment 上传中引用）---- */
+@property --shimmer-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 20deg;
+}
+@property --shimmer-image {
+  syntax: "*";
+  inherits: false;
+}
+@property --shimmer-text-fill {
+  syntax: "*";
+  inherits: false;
+}
+
+@theme inline {
+  @keyframes tw-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+}
+
+@utility shimmer {
+  --_spread: var(--shimmer-spread, calc(3ch + 40px));
+  --_base: currentColor;
+  --_highlight: var(
+    --shimmer-color,
+    oklch(from currentColor l c h / calc(alpha* 0.2))
+  );
+
+  background-image: var(
+    --shimmer-image,
+    linear-gradient(
+      calc(90deg + var(--shimmer-angle)),
+      var(--_base) calc(50% - var(--_spread)),
+      color-mix(in oklch, var(--_highlight), var(--_base) 50%)
+        calc(50% - var(--_spread) * 0.5),
+      var(--_highlight) 50%,
+      color-mix(in oklch, var(--_highlight), var(--_base) 50%)
+        calc(50% + var(--_spread) * 0.5),
+      var(--_base) calc(50% + var(--_spread))
+    )
+  );
+  background-repeat: no-repeat;
+  background-size: calc(200% + var(--_spread) * 2) 100%;
+  background-position: 0 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--shimmer-text-fill, transparent);
+  animation: tw-shimmer var(--shimmer-duration, 2s) linear infinite;
+
+  @variant dark {
+    --_highlight: var(
+      --shimmer-color,
+      oklch(from currentColor max(0.8, calc(l + 0.4)) c h / calc(alpha + 0.4))
+    );
+  }
+
+  &:where([dir="rtl"], [dir="rtl"] *) {
+    animation-direction: reverse;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+@utility shimmer-none {
+  --shimmer-text-fill: currentColor;
+  --shimmer-image: none;
+}
+
+/* ---- [A] cn-toast：sonner toast 圆角 ---- */
+.cn-toast {
+  @apply rounded-2xl;
+}
+
+/* ---- [B] cn-font-heading：标题字族。
+   上游按 preset fontHeading=inherit 回退到正文字体（nova preset 即 inherit），
+   此处等价实现为 body 字体 var(--font-sans)。 ---- */
+.cn-font-heading {
+  font-family: var(--font-sans);
+}
+
+/* ---- cn-menu-target / cn-menu-translucent：菜单主题配置占位类（menuColor / menuAccent）。
+   官方 transform-menu 构建逻辑：当前配置 menuColor=default + menuAccent=subtle 时
+   这两个类会在构建期被移除（等价 no-op）；inverted* / *translucent 配置下才注入实际样式。
+   此处保留 no-op 定义，避免引用悬空。 ---- */
+.cn-menu-target {}
+.cn-menu-translucent {}
+
+/* ---- [A] cn-calendar-*：calendar（react-day-picker）引用 ---- */
+.cn-calendar-dropdown-root {
+  @apply has-focus:border-ring border-input has-focus:ring-ring border has-focus:ring-3;
+}
+
+.cn-calendar-caption-label {
+  @apply h-6 pr-1 pl-1.5;
+}
+
+/* cn-calendar-caption：上游 style-nova.css 未定义（captionLayout="label" 的标记类），保留 no-op */
+.cn-calendar-caption {}
+
+/* ---- [A] cn-input-otp：input-otp 根间距 ---- */
+.cn-input-otp {
+  @apply gap-2;
+}
+
+/* ---- cn-rtl-flip：RTL 翻转标记（面包屑/日历/轮播/分页箭头图标）。
+   官方 transform-rtl 逻辑：config.rtl=true 时替换为 rtl:rotate-180；本项目 rtl=false。
+   此处按 rtl:rotate-180 的语义提供定义（dir=rtl 时图标旋转 180°，LTR 下无效果）。 ---- */
+[dir="rtl"] .cn-rtl-flip {
+  transform: rotate(180deg);
+}
+
+/* ---- cn-markdown：流式 markdown（Streamdown）排版（components/markdown.tsx 引用）。
+   来源说明：shadcn-ui/ui monorepo（main 与 2026-09-04 cn 迁移提交）全库检索 + npm
+   shadcn/@shadcn/streamdown 包 + 线上站点 CSS 均确认 cn-markdown 只有组件引用、
+   官方无 CSS 定义（上游死类）。以下按官方 typeset 排版规范
+   （apps/v4/app/(app)/(typeset)/typeset.css）适配到组件作用域，
+   颜色 token 映射为本项目 --foreground / --muted-foreground / --muted /
+   --border / --ring / --primary（:root 与 .dark 两套，自动适配明暗）；
+   豁免仅限 markdown 根「内部」嵌入的 shadcn 组件（CodeBlock 等）：写作
+   [data-slot], .cn-markdown [data-slot] *。不能裸写 [data-slot] *——
+   .cn-markdown 自身嵌在 Message/MessageContent 等 data-slot 组件里，
+   裸写会排除全部后代，整个排版块变死 CSS。 ---- */
+.cn-markdown {
+  --typeset-font-body: inherit;
+  --typeset-font-heading: inherit;
+  --typeset-font-mono: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  --typeset-size: 1em;
+  --typeset-leading: 1.75;
+  --typeset-flow: 1.25em;
+
+  font-family: var(--typeset-font-body);
+  font-size: var(--typeset-size);
+  line-height: var(--typeset-leading);
+  color: var(--foreground);
+  overflow-wrap: break-word;
+  margin-trim: block-start;
+
+  --typeset-muted: var(--muted-foreground);
+  --typeset-rule: var(--border);
+}
+
+.cn-markdown
+  *:not(
+    :where(
+      .not-typeset,
+      [data-not-typeset],
+      .not-typeset *,
+      [data-not-typeset] *,
+      [data-slot],
+      .cn-markdown [data-slot] *
+    )
+  ) {
+  /* 段落 */
+  &:where(p) {
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+  }
+
+  /* 标题 */
+  &:where(h1, h2, h3, h4, h5, h6) {
+    color: var(--foreground);
+    font-family: var(--typeset-font-heading);
+    font-weight: 600;
+    margin-block-end: 0;
+  }
+  &:where(h1) {
+    font-size: 1.75em;
+    line-height: 1.3;
+    margin-block-start: var(--typeset-flow);
+  }
+  &:where(h2) {
+    font-size: 1.25em;
+    line-height: 1.4;
+    margin-block-start: calc(var(--typeset-flow) * 1.4);
+  }
+  &:where(h3) {
+    font-size: 1.125em;
+    line-height: 1.45;
+    margin-block-start: var(--typeset-flow);
+  }
+  &:where(h4) {
+    font-size: 1em;
+    line-height: 1.5;
+    margin-block-start: var(--typeset-flow);
+  }
+  &:where(h5) {
+    font-size: 0.875em;
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--typeset-muted);
+    margin-block-start: calc(var(--typeset-flow) / 0.875);
+  }
+  &:where(h6) {
+    font-size: 0.8125em;
+    line-height: 1.5;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--typeset-muted);
+    margin-block-start: calc(var(--typeset-flow) / 0.8125);
+  }
+  &:where([id]) {
+    scroll-margin-block-start: var(--typeset-flow);
+  }
+  /* 标题自己负责与下文的间距 */
+  &:where(h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + *) {
+    margin-block-start: 1em;
+  }
+  &:where(:is(h1, h2, h3, h4) :is(code)) {
+    font-size: 0.9em;
+  }
+
+  /* 链接 */
+  &:where(a) {
+    color: inherit;
+    font-weight: 500;
+    text-decoration-line: underline;
+    text-decoration-color: color-mix(in oklab, currentColor 30%, transparent);
+  }
+  &:where(a:hover) {
+    text-decoration-color: currentColor;
+  }
+  &:where(a:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 0.125em;
+  }
+  &:where(:is(h1, h2, h3, h4, h5, h6) :is(a)) {
+    font-weight: inherit;
+  }
+
+  /* 行内语义 */
+  &:where(strong, b) {
+    font-weight: 600;
+  }
+  &:where(mark) {
+    background-color: color-mix(in oklab, oklch(0.86 0.17 95) 40%, transparent);
+    color: inherit;
+    padding: 0.05em 0.15em;
+    border-radius: 0.2em;
+  }
+  &:where(abbr[title]) {
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 0.2em;
+    cursor: help;
+  }
+  &:where(del, s) {
+    color: var(--typeset-muted);
+    text-decoration-line: line-through;
+  }
+  &:where(sup, sub) {
+    font-size: 0.75em;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  &:where(sup) {
+    top: -0.5em;
+  }
+  &:where(sub) {
+    bottom: -0.25em;
+  }
+  &:where(sup a) {
+    text-decoration-line: none;
+    font-weight: 500;
+  }
+
+  /* 列表 */
+  &:where(ul) {
+    list-style-type: disc;
+  }
+  &:where(ol) {
+    list-style-type: decimal;
+  }
+  &:where(ul ul) {
+    list-style-type: circle;
+  }
+  &:where(ul ul ul) {
+    list-style-type: square;
+  }
+  &:where(ol[type="a" i]) {
+    list-style-type: lower-alpha;
+  }
+  &:where(ol[type="i" i]) {
+    list-style-type: lower-roman;
+  }
+  &:where(ol[type="A" s]) {
+    list-style-type: upper-alpha;
+  }
+  &:where(ol[type="I" s]) {
+    list-style-type: upper-roman;
+  }
+  &:where(ul, ol) {
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+    padding-inline-start: 1.5em;
+  }
+  &:where(li) {
+    margin-block-start: 0.5em;
+    padding-inline-start: 0.4em;
+  }
+  &:where(li > p, li > ul, li > ol) {
+    margin-block-start: 0.5em;
+  }
+  &:where(ul > li)::marker {
+    color: var(--typeset-muted);
+  }
+  &:where(ol > li)::marker {
+    color: var(--typeset-muted);
+  }
+
+  /* GFM 任务列表 */
+  &:where(ul.contains-task-list) {
+    list-style-type: none;
+    padding-inline-start: 0.25em;
+  }
+  &:where(li.task-list-item > input[type="checkbox"]) {
+    margin-inline-end: 0.5em;
+    vertical-align: -0.1em;
+    accent-color: var(--primary);
+  }
+
+  /* 折叠块 */
+  &:where(details) {
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+  }
+  &:where(summary) {
+    cursor: pointer;
+    font-weight: 500;
+  }
+  &:where(summary)::marker {
+    color: var(--typeset-muted);
+  }
+
+  /* 按键 */
+  &:where(kbd) {
+    font-family: inherit;
+    font-size: 0.92em;
+    font-weight: 500;
+    border: 1px solid var(--typeset-rule);
+    border-block-end-width: 2px;
+    border-radius: min(calc(var(--radius) * 0.6), 0.35em);
+    padding: 0.0625em 0.35em;
+  }
+
+  /* 定义列表 */
+  &:where(dl) {
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+  }
+  &:where(dt) {
+    font-weight: 500;
+    margin-block-start: 1em;
+  }
+  &:where(dt + dt) {
+    margin-block-start: 0.25em;
+  }
+  &:where(dd) {
+    margin-block-start: 0.25em;
+    margin-inline-start: 0;
+    padding-inline-start: 1em;
+    color: var(--typeset-muted);
+  }
+
+  /* 行内代码 */
+  &:where(:not(pre) > code) {
+    background-color: var(--muted);
+    font-family: var(--typeset-font-mono);
+    font-size: 0.85em;
+    border-radius: min(calc(var(--radius) * 0.6), 0.35em);
+    padding: 0.125em 0.3em;
+    /* 长 token（pod 名/哈希）在窄面板内可断行，不撑破布局 */
+    overflow-wrap: anywhere;
+    /* 断行处背景/圆角逐段重绘，避免 chip 被腰斩成两截（dock 窄列实测） */
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /* 代码块（shadcn CodeBlock 走 [data-slot] 豁免，此处兜底原生 pre） */
+  &:where(pre) {
+    background-color: var(--muted);
+    font-family: var(--typeset-font-mono);
+    font-size: 0.875em;
+    line-height: 1.5;
+    tab-size: 2;
+    direction: ltr;
+    border-radius: var(--radius);
+    padding: 0.75em 1em;
+    overflow-x: auto;
+    margin-block-start: calc(var(--typeset-flow) / 0.875);
+    margin-block-end: 0;
+  }
+  &:where(pre code) {
+    background-color: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  /* 引用 */
+  &:where(blockquote) {
+    border-inline-start: 2px solid var(--typeset-rule);
+    padding-inline-start: 1em;
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+    margin-inline: 0;
+  }
+
+  /* 分隔线 */
+  &:where(hr) {
+    border: 0;
+    border-block-start: 1px solid var(--typeset-rule);
+    margin-block-start: calc(var(--typeset-flow) * 2.4);
+    margin-block-end: 0;
+  }
+  &:where(hr + h1, hr + h2, hr + h3, hr + h4) {
+    margin-block-start: var(--typeset-flow);
+  }
+
+  /* 媒体 */
+  &:where(img, video) {
+    border-radius: var(--radius);
+    max-width: 100%;
+    height: auto;
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+  }
+  &:where(p img) {
+    margin-block-start: 0;
+  }
+  &:where(figure) {
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+    margin-inline: 0;
+  }
+  &:where(figcaption, caption) {
+    color: var(--typeset-muted);
+    font-size: 0.875em;
+    text-align: center;
+    margin-block-start: calc(0.75em / 0.875);
+  }
+  &:where(caption) {
+    caption-side: bottom;
+  }
+
+  /* 表格：滚动与边框交给 Streamdown 自带的滚动框（table-wrapper > overflow 框），
+     这里只做排版：字号降一档（须落到单元格，Streamdown 的 text 工具类会盖掉 table 级字号）、
+     单元格 nowrap 不折行、padding 收紧。宽表在滚动框内横向滚动。 */
+  &:where(table) {
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-block-start: var(--typeset-flow);
+    margin-block-end: 0;
+  }
+  &:where(thead th) {
+    font-size: 0.875em;
+    font-weight: 500;
+    text-align: start;
+    white-space: nowrap;
+    padding: 0.5em 0.75em;
+  }
+  &:where(:is(tbody, tfoot) :is(td, th)) {
+    font-size: 0.875em;
+    padding: 0.5em 0.75em;
+    text-align: start;
+    vertical-align: top;
+    white-space: nowrap;
+    border-block-start: 1px solid var(--typeset-rule);
+  }
+  &:where(tbody th, tfoot th) {
+    font-weight: 500;
+  }
+  &:where(th[align="center"], td[align="center"]) {
+    text-align: center;
+  }
+  &:where(th[align="right"], td[align="right"]) {
+    text-align: end;
+  }
+
+  /* 列表项内的块级元素沿用列表的紧凑节奏 */
+  &:where(li > blockquote, li > table, li > figure) {
+    margin-block-start: 0.5em;
+  }
+  &:where(li > pre) {
+    margin-block-start: calc(0.5em / 0.875);
+  }
+}
+
+/* 首个子元素不产生顶部间距 */
+.cn-markdown > :where(:first-child):not(:where([data-slot], [data-slot] *)),
+.cn-markdown
+  > :where(:first-child)
+  > :where(:first-child):not(:where([data-slot], [data-slot] *)),
+.cn-markdown
+  :where(
+    li > :first-child,
+    blockquote > :first-child,
+    td > :first-child,
+    th > :first-child,
+    dd > :first-child,
+    figure > :first-child,
+    figure > picture > img
+  ):not(:where([data-slot], [data-slot] *)) {
+  margin-block-start: 0;
+}
+
+/* ---- 横滚滚动条常驻可见(结构适配)----
+   markdown 表格的 streamdown 自带 wrapper 已被 components.table 整体替换、不再渲染,
+   实际滚动框唯一形态 = HScrollFade 内层(data-hscroll-scroll,markdown 表与列表宽表共用)。
+   macOS 覆盖式滚动条不可见:宽表静止时末列被裁,只剩右缘 fade 一个提示,
+   显式 webkit 细滚动条把 overlay 行为降级为经典滚动条 */
+[data-hscroll-scroll] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+[data-hscroll-scroll]::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+[data-hscroll-scroll]::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+[data-hscroll-scroll]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 思考/轨迹折叠:高度+透明度过渡。纯 fade 会让收起时高度瞬归 0,
+   下方正文 teleport 上跳;Radix 提供 --radix-collapsible-content-height。
+   专用 keyframes(不动全局 accordion-down/up,命名空间隔离) */
+@keyframes trace-open {
+  from { height: 0; opacity: 0; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+@keyframes trace-close {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0; }
+}
+[data-slot='trace-collapsible-content'][data-state='open'] {
+  animation: trace-open 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+[data-slot='trace-collapsible-content'][data-state='closed'] {
+  animation: trace-close 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* AI 聊天列紧凑节奏:.cn-markdown 自身声明了 --typeset-leading/flow,外层容器上的同名 var
+   覆盖对它无效(元素自身声明优先),必须写进 .cn-markdown 能命中的作用域、且排在其声明之后 */
+[data-slot='message'] .cn-markdown {
+  --typeset-leading: 1.6;
+  --typeset-flow: 0.85em;
+  /* 思考容器 inner 是 muted,回答容器默认 foreground:.cn-markdown 若硬写 foreground
+     两级明度就抹平——inherit 让容器色穿透,层级只剩一处真相 */
+  color: inherit;
+}
+/* 模型产出的小节标题在 1em 正文里存在感为零:提一档字阶 */
+[data-slot='message'] .cn-markdown :is(h3, h4) {
+  font-size: 1.0625em;
+}
+/* 列表项间距压到小于段间距(实测 42≈44 倒挂):bullet 归组、段落分离 */
+[data-slot='message'] .cn-markdown :where(ul, ol) > li + li {
+  margin-block-start: 0.35em;
+}
+/* 表格首列与正文左缘共线(单元格 0.75em padding 让整表右坠 ~16px)。
+   thead 不加 border——separate 合并下会与首行 td 既有顶线叠成 2px 双线 */
+.cn-markdown :where(thead th, tbody th, tbody td):first-child {
+  padding-inline-start: 0;
+}
+
+/* reduced-motion 全局硬兜底：tw-animate-css 的 data-[state]:animate-in/out 族无自带降级。
+   duration-override 而非 animation:none——保留 animationName，Radix Presence 仍能收到
+   animationend 正常卸载（直接 none 会卡住退出层不卸载） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* 旋转/呼吸是「活着/进行中」的状态语义而非前庭触发源（WCAG 2.3.3 要减不要杀）：
+     全冻会让加载图标读成图标坏了——降速保留循环 */
+  .animate-spin {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .animate-pulse {
+    animation-duration: 2s !important;
+    animation-iteration-count: infinite !important;
+  }
+  /* watch 值变化闪光属 T1 状态通知：减动也要留 200ms 提示，别被上面的 0.01ms 抹成无提示 */
+  [data-flash]::after {
+    animation-duration: 200ms !important;
+  }
+  /* 纯 opacity 淡入淡出无前庭风险且承载结构变化提示:reduce 下取「更温和」而非归零 */
+  .animate-in,
+  .animate-out {
+    animation-duration: 120ms !important;
+  }
+  [data-slot='tabs-indicator'] {
+    transition-duration: 100ms !important;
+  }
+  /* 全局 reduce 选择器匹配不到 view-transition 伪元素：显式关（主题切换硬切） */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* watch 推送值变化时亮一下（见 lib/useFlash.ts）：仅 currentColor 透明度叠加，
+   不动布局；animationend 沿伪元素冒泡到宿主节点，宿主用它清理 data-flash */
+[data-flash] {
+  position: relative;
+}
+[data-flash]::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 6px;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  animation: flash-update 400ms var(--ease-strong) forwards;
+}
+@keyframes flash-update {
+  from {
+    opacity: 0.16;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---- lucide 统一笔画宽度（1.5 比默认 2 在 13px 密度下更安静）---- */
+svg.lucide {
+  stroke-width: 1.5;
+}
+
+/* ---- 主题切换 View Transitions：200ms 淡切（不支持的环境 startViewTransition?.() 自然跳过；
+   prefers-reduced-motion 由 UA 按规范自动 skip transition，硬切）---- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: var(--ease-strong);
+}

@@ -1,0 +1,34 @@
+{
+  "name": "k8s-ai-exec",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "K8S Dashboard AI 执行层：pi coding-agent SDK 进程内集成，输出 AI SDK v7 UIMessageStream（SSE）",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint lib server.js",
+    "test": "node --test lib/"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "1.5.2",
+    "@earendil-works/pi-ai": "1.5.2",
+    "@earendil-works/pi-coding-agent": "1.5.2",
+    "typebox": "1.3.27",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "oxlint": "^1.95.0",
+    "typescript": "5.9.3"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noexcs/k8s-dashboard.git"
+  }
+}

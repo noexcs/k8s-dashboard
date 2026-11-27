@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "react-hooks"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-unused-vars": "error",
+    "react/react-in-jsx-scope": "off",
+    "no-control-regex": "off",
+    "react/refs": "warn",
+    "react/set-state-in-effect": "warn",
+    "react/static-components": "warn"
+  },
+  "ignorePatterns": [
+    "dist",
+    "src/components/ui"
+  ]
+}
