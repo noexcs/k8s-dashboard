@@ -34,7 +34,7 @@ import { toUIMessages } from './lib/ui-message.js'
 import { PERMISSION_MODES, decideApproval, pendingToolCallIds, pendingItems, allowToolForSession, autoAllowedTools, clearAutoAllowForSession } from './lib/permissions.js'
 import { record as auditRecord, list as auditList } from './lib/audit.js'
 import { notify, lastNotify } from './lib/notify.js'
-import { activeLlm, effective, readOverrides, writeOverrides } from './lib/overrides.js'
+import { activeLlm, effective, normalizeModelEntry, PROVIDER_APIS, readOverrides, writeOverrides } from './lib/overrides.js'
 import { save as handoverSave, get as handoverGet, listRecent as handoverListRecent, listAll as handoverListAll, markAcked as handoverMarkAcked } from './lib/handover.js'
 import { listDaily } from './lib/daily.js'
 import { record as dispRecord, listLatest as dispList } from './lib/disposition.js'
@@ -746,7 +746,8 @@ async function route(req, res) {
       llmProviders: {
         items: (Array.isArray(ov.llmProviders) ? ov.llmProviders : []).map((/** @type {any} */ x) => ({
           id: String(x.id), name: String(x.name), baseUrl: String(x.baseUrl),
-          models: Array.isArray(x.models) ? x.models.map(String) : [], hasKey: !!String(x.apiKey ?? ''),
+          api: PROVIDER_APIS.has(String(x.api)) ? String(x.api) : 'openai-completions',
+          models: (Array.isArray(x.models) ? x.models : []).map(normalizeModelEntry).filter((/** @type {any} */ m) => m.id), hasKey: !!String(x.apiKey ?? ''),
         })),
         activeId: llm.providerId ?? '',
         activeLabel: llm.label,
@@ -757,23 +758,47 @@ async function route(req, res) {
     return
   }
   if (req.method === 'POST' && p === '/config/test-llm') {
-    // 连接测试：GET {baseUrl}/models（OpenAI 兼容标准端点）。表单态带明文 key；
-    // 已存 provider 传 {id} + apiKey=__KEEP__ 用盘上密钥测
+    // 连接测试：按 API 格式打各家模型目录端点。表单态带明文 key；
+    // 已存 provider 传 {id} + apiKey=__KEEP__ 用盘上密钥测。
+    // 模型条目尽量带上下文上限：OpenAI 标准 /models 不带此字段，但 vLLM 等实现普遍带
+    // 私有扩展（max_model_len / context_length / max_position_embeddings），尽力解析，拿不到回落默认
     const body = await readJsonBody(req)
     const ov = readOverrides()
     const list = Array.isArray(ov.llmProviders) ? ov.llmProviders : []
     const stored = list.find((/** @type {any} */ x) => x && x.id === body.id)
     const baseUrl = String(body.baseUrl ?? stored?.baseUrl ?? '').trim().replace(/\/+$/, '')
     if (!/^https?:\/\//.test(baseUrl)) return sendJson(res, 400, { ok: false, error: '网关须为 http(s) 地址' })
+    const api = PROVIDER_APIS.has(String(body.api)) ? String(body.api) : 'openai-completions'
     const apiKey = body.apiKey === '__KEEP__' ? String(stored?.apiKey ?? '') : String(body.apiKey ?? '')
-    const target = runtimeBaseUrl(baseUrl) + '/models'
+    const root = runtimeBaseUrl(baseUrl)
+    const target = api === 'google-generative-ai' ? `${root}/models${apiKey ? `?key=${encodeURIComponent(apiKey)}` : ''}` : `${root}/models`
+    /** @type {Record<string, string>} */
+    const headers =
+      api === 'anthropic-messages' ? { 'x-api-key': apiKey, 'anthropic-version': '2023-05-31' } :
+      api === 'google-generative-ai' ? {} :
+      apiKey ? { authorization: `Bearer ${apiKey}` } : {}
     const ctl = new AbortController()
     const timer = setTimeout(() => ctl.abort(), 8000)
     try {
-      const r = await fetch(target, { headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {}, signal: ctl.signal })
+      const r = await fetch(target, { headers, signal: ctl.signal })
       if (!r.ok) return sendJson(res, 200, { ok: false, error: `HTTP ${r.status}（${new URL(target).host}）` })
       const j = await r.json().catch(() => ({}))
-      const models = Array.isArray(j?.data) ? j.data.map((/** @type {any} */ m) => String(m?.id ?? '')).filter(Boolean).slice(0, 50) : []
+      /** @param {any[]} vs */
+      const firstNum = (...vs) => {
+        for (const v of vs) { const n = Number(v); if (Number.isFinite(n) && n >= 1024) return Math.floor(n) }
+        return undefined
+      }
+      /** @type {any[]} */
+      const rawModels = api === 'google-generative-ai'
+        ? (Array.isArray(j?.models) ? j.models : []).map((/** @type {any} */ m) => ({ id: String(m?.name ?? '').split('/').pop(), contextWindow: firstNum(m?.inputTokenLimit) }))
+        : (Array.isArray(j?.data) ? j.data : []).map((/** @type {any} */ m) => ({
+            id: String(m?.id ?? ''),
+            contextWindow: firstNum(m?.max_model_len, m?.context_length, m?.context_window, m?.max_position_embeddings, m?.max_input_tokens),
+          }))
+      const models = rawModels
+        .filter((/** @type {any} */ m) => m.id)
+        .slice(0, 50)
+        .map((/** @type {any} */ m) => ({ id: String(m.id), ...(m.contextWindow ? { contextWindow: m.contextWindow } : {}) }))
       sendJson(res, 200, { ok: true, models, via: target.includes('host.docker.internal') ? 'host.docker.internal' : 'direct' })
     } catch (e) {
       const msg = e instanceof Error && e.name === 'AbortError' ? '8s 超时' : e instanceof Error ? e.message.slice(0, 120) : String(e)

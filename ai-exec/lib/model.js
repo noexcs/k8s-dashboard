@@ -22,7 +22,7 @@ import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ModelRuntime } from '@earendil-works/pi-coding-agent'
 import { config } from './config.js'
-import { activeLlm, effective, readOverrides } from './overrides.js'
+import { activeLlm, effective, normalizeModelEntry, PROVIDER_APIS, readOverrides } from './overrides.js'
 
 /** @typedef {import('@earendil-works/pi-ai').Model<import('@earendil-works/pi-ai').Api>} PiModel */
 /** @typedef {import('@earendil-works/pi-coding-agent').ModelRuntime} PiModelRuntime */
@@ -48,19 +48,22 @@ export function providerKey(providerId) {
   return providerId ? `${LLM_PROVIDER}-${providerId}` : LLM_PROVIDER
 }
 
-/** 模型条目模板：vLLM OpenAI 兼容端点的统一假设（同旧单模型行为） */
-/** @param {string} id */
-function modelEntry(id) {
+/** 模型条目模板：vLLM OpenAI 兼容端点的统一假设；上下文/输出上限优先取网关上报值（/models 自动获取） */
+/** @param {{ id: string, contextWindow?: number, maxTokens?: number }} entry */
+function modelEntry(entry) {
+  // 拿不到上报值时回落历史默认（256k 窗口，兼容旧行为）
+  const ctx = entry.contextWindow ?? 262144
   return {
-    id,
-    name: id,
+    id: entry.id,
+    name: entry.id,
     // 思考由 samplingParams.reasoning_effort 控制，不声明 reasoning，
     // 避免 pi 按 thinking 级别再叠加参数
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 262144,
-    maxTokens: 16384,
+    contextWindow: ctx,
+    // 输出上限不超过窗口一半（256k 时=16384，与旧固定值一致）
+    maxTokens: entry.maxTokens ?? Math.min(16384, Math.floor(ctx / 2)),
     samplingParams: {
       // temperature 与浏览器侧 createAgent 保持一致
       temperature: 0.3,
@@ -72,7 +75,7 @@ function modelEntry(id) {
 
 /** 全部 provider 的生成输入：env 底座（配置了才有）+ UI provider 列表 */
 export function providerSpecs() {
-  /** @type {Array<{ key: string, name: string, baseUrl: string, apiKey: string, models: string[] }>} */
+  /** @type {Array<{ key: string, name: string, baseUrl: string, api: string, apiKey: string, models: Array<{ id: string, contextWindow?: number, maxTokens?: number }> }>} */
   const specs = []
   const ov = readOverrides()
   const list = Array.isArray(ov.llmProviders) ? ov.llmProviders : []
@@ -83,8 +86,9 @@ export function providerSpecs() {
       key: LLM_PROVIDER,
       name: 'env 网关',
       baseUrl: String(ov.llmGatewayBase ?? config.llmGatewayBase),
+      api: 'openai-completions',
       apiKey: String(ov.llmApiKey ?? config.llmApiKey),
-      models: envModel ? [envModel] : [],
+      models: envModel ? [{ id: envModel }] : [],
     })
   }
   for (const p of list) {
@@ -93,8 +97,9 @@ export function providerSpecs() {
       key: providerKey(String(p.id)),
       name: String(p.name ?? p.id),
       baseUrl: String(p.baseUrl),
+      api: PROVIDER_APIS.has(String(p.api)) ? String(p.api) : 'openai-completions',
       apiKey: String(p.apiKey ?? ''),
-      models: Array.isArray(p.models) ? p.models.map(String) : [],
+      models: (Array.isArray(p.models) ? p.models : []).map(normalizeModelEntry).filter((/** @type {{ id: string }} */ m) => m.id),
     })
   }
   return specs
@@ -110,7 +115,7 @@ export function writeModelsJson() {
     providers[s.key] = {
       name: s.name,
       baseUrl: runtimeBaseUrl(s.baseUrl),
-      api: 'openai-completions',
+      api: s.api,
       // pi schema: apiKey minLength 1——免鉴权网关省略字段而非写空串
       // （空串会让整个 models.json 校验失败，连坐丢全部 provider）
       ...(s.apiKey ? { apiKey: s.apiKey } : {}),
@@ -194,9 +199,9 @@ export async function listModels() {
   const out = []
   for (const s of ordered) {
     // 默认模型置顶：AiChat「默认取列表第一个」的约定要真的落到设置页选的模型上
-    const models = s.key === activeKey ? [...s.models].sort((a, b) => (a === defaultModel ? -1 : b === defaultModel ? 1 : 0)) : s.models
+    const models = s.key === activeKey ? [...s.models].sort((a, b) => (a.id === defaultModel ? -1 : b.id === defaultModel ? 1 : 0)) : s.models
     for (const m of models) {
-      out.push({ id: `${s.key}/${m}`, name: specs.length > 1 || s.key !== LLM_PROVIDER ? `${m} · ${s.name}` : m })
+      out.push({ id: `${s.key}/${m.id}`, name: specs.length > 1 || s.key !== LLM_PROVIDER ? `${m.id} · ${s.name}` : m.id })
     }
   }
   return out
@@ -204,5 +209,5 @@ export async function listModels() {
 
 /** 目录里全部 "provider/model" id（resolveModel 报错文案用）；须在 writeModelsJson 后调用 */
 function allModelIds() {
-  return providerSpecs().flatMap(s => s.models.map(m => `${s.key}/${m}`))
+  return providerSpecs().flatMap(s => s.models.map(m => `${s.key}/${m.id}`))
 }

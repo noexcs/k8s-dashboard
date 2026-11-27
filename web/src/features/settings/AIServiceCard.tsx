@@ -25,14 +25,31 @@ interface AiStatus {
   notifyLast?: { ts: string; ok: boolean; err?: string; text?: string } | null
 }
 
-/** 设置页 provider 视图项（密钥不下发，只有 hasKey） */
+/** 设置页 provider 视图项(密钥不下发,只有 hasKey)；models 条目可带网关自动获取的上下文/输出上限 */
+interface ProvModel {
+  id: string
+  contextWindow?: number
+  maxTokens?: number
+}
 interface ProviderItem {
   id: string
   name: string
   baseUrl: string
-  models: string[]
+  api: string
+  models: ProvModel[]
   hasKey: boolean
 }
+
+/** pi 支持的四种上游格式；openai-completions 覆盖 vLLM/Ollama/one-api 等兼容网关（默认） */
+const API_OPTIONS = ['openai-completions', 'openai-responses', 'anthropic-messages', 'google-generative-ai']
+const API_LABELS: Record<string, string> = {
+  'openai-completions': 'OpenAI compatible',
+  'openai-responses': 'OpenAI Responses',
+  'anthropic-messages': 'Anthropic Messages',
+  'google-generative-ai': 'Google Gemini',
+}
+/** 上下文长度的人类读数：262144 → 256k */
+const fmtCtx = (n?: number) => (n ? (n >= 1048576 ? `${Math.round(n / 1048576)}M` : n >= 1024 ? `${Math.round(n / 1024)}k` : String(n)) : '')
 
 type CfgKey = 'inspectIntervalMin' | 'notifyWebhookUrl' | 'panelBaseUrl' | 'llmGatewayBase' | 'llmModel'
 type CfgRow = { value: string | number; overridden: boolean; env: string | number }
@@ -197,11 +214,12 @@ export function AIServiceCard() {
   // ---- 多 Provider：列表全量替换 PUT llmProviders；active/默认模型单独 PUT。
   // 密钥只写不回显：编辑留空=__KEEP__（服务端合回旧 key），与「显式无密钥」区分开 ----
   const provs = cfgQ.data?.llmProviders
-  const [provForm, setProvForm] = useState<null | { id?: string; hasKey?: boolean; name: string; baseUrl: string; apiKey: string; models: string }>(null)
+  type ProvForm = { id?: string; hasKey?: boolean; name: string; baseUrl: string; apiKey: string; api: string; models: string; meta: Record<string, ProvModel> }
+  const [provForm, setProvForm] = useState<null | ProvForm>(null)
   const [provErr, setProvErr] = useState('')
   const [provBusy, setProvBusy] = useState(false)
   // 每 provider 一格测试结果（id→态）：全局单态会把 A 的「可用」串显示在 B 行上
-  const [pTests, setPTests] = useState<Record<string, { state: 'busy' | 'ok' | 'fail'; err?: string; models?: string[] }>>({})
+  const [pTests, setPTests] = useState<Record<string, { state: 'busy' | 'ok' | 'fail'; err?: string; models?: ProvModel[] }>>({})
   const [confirmDel, setConfirmDel] = useState('')
 
   const putConfig = async (patch: Record<string, unknown>): Promise<string> => {
@@ -218,23 +236,35 @@ export function AIServiceCard() {
     // 列表改动=运行时重建，横幅的模型数/网关必须跟着刷
     void q.refetch()
   }
-  const testProvider = async (arg: { id?: string; baseUrl: string; apiKey?: string }, slot: string) => {
+  const testProvider = async (arg: { id?: string; baseUrl: string; apiKey?: string; api: string }, slot: string) => {
     setPTests(m => ({ ...m, [slot]: { state: 'busy' } }))
     try {
       const r = await fetch('/ai/config/test-llm', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ baseUrl: arg.baseUrl, apiKey: arg.apiKey ?? '__KEEP__', ...(arg.id ? { id: arg.id } : {}) }),
+        body: JSON.stringify({ baseUrl: arg.baseUrl, apiKey: arg.apiKey ?? '__KEEP__', api: arg.api, ...(arg.id ? { id: arg.id } : {}) }),
       })
-      const d = (await r.json()) as { ok?: boolean; error?: string; models?: string[] }
+      const d = (await r.json()) as { ok?: boolean; error?: string; models?: ProvModel[] }
       setPTests(m => ({ ...m, [slot]: d.ok ? { state: 'ok', models: d.models ?? [] } : { state: 'fail', err: d.error ?? '' } }))
-      // 表单态测通：单模型直接填进模型框，多模型给「填入」按钮（防 50 个全灌进来）
-      if (d.ok && provForm && (slot === 'form' || slot === (provForm.id ?? 'new')) && (d.models?.length ?? 0) === 1) {
-        setProvForm(f => (f ? { ...f, models: d.models![0] } : f))
+      // 表单态测通：单模型直接填进模型框（含上下文元数据），多模型给「填入」按钮（防 50 个全灌进来）
+      if (d.ok && provForm && slot === (provForm.id ?? 'new') && (d.models?.length ?? 0) === 1) {
+        const m0 = d.models![0]
+        setProvForm(f => (f ? { ...f, models: m0.id, meta: { ...f.meta, [m0.id]: m0 } } : f))
       }
     } catch (e) {
       setPTests(m => ({ ...m, [slot]: { state: 'fail', err: e instanceof Error ? e.message.slice(0, 100) : '' } }))
     }
+  }
+  // 地址/密钥/格式失焦后自动拉一次模型目录（sig 去重，不重播）；手动「测试连接」保留
+  const probeSigRef = useRef('')
+  const maybeAutoProbe = (f: null | ProvForm) => {
+    if (!f) return
+    const baseUrl = f.baseUrl.trim()
+    if (!/^https?:\/\/.+/i.test(baseUrl)) return
+    const sig = `${f.id ?? 'new'}|${f.api}|${baseUrl}|${f.apiKey}`
+    if (probeSigRef.current === sig) return
+    probeSigRef.current = sig
+    void testProvider({ id: f.id, baseUrl, api: f.api, apiKey: f.apiKey === '' && f.hasKey ? '__KEEP__' : f.apiKey }, f.id ?? 'new')
   }
   const saveProvider = async () => {
     if (!provForm || provBusy) return
@@ -251,7 +281,9 @@ export function AIServiceCard() {
       const item: Record<string, unknown> = {
         name,
         baseUrl,
-        models,
+        api: provForm.api,
+        // 手填 id + 自动获取到的每模型元数据合并落盘（拿不到的字段由服务端回落默认）
+        models: models.map(id => ({ ...provForm.meta[id], id })),
         // 编辑且留空=保持原密钥；新表单留空=无鉴权网关
         apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey,
         ...(provForm.id ? { id: provForm.id } : {}),
@@ -569,11 +601,11 @@ export function AIServiceCard() {
               aria-label={tf('settings:aiProviderActiveAria', { name: p.name })}
             />
             <span className="truncate text-[13px] font-medium">{p.name}</span>
-            <Badge variant="secondary" className="shrink-0 tabular-nums">{tf('settings:aiProviderModelsN', { n: p.models.length })}</Badge>
+            <Badge variant="secondary" className="shrink-0 tabular-nums" title={p.models.map(x => `${x.id}${x.contextWindow ? ` · ${fmtCtx(x.contextWindow)}` : ''}`).join('\n')}>{tf('settings:aiProviderModelsN', { n: p.models.length })}</Badge>
             <span className={cn('shrink-0 text-xs', !p.hasKey && 'text-muted-foreground')}>{p.hasKey ? t('settings:aiProviderKeySet') : t('settings:aiProviderKeyNone')}</span>
           </label>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Button size="sm" variant="outline" aria-disabled={tst?.state === 'busy' || undefined} onClick={() => { if (tst?.state !== 'busy') void testProvider({ id: p.id, baseUrl: p.baseUrl }, p.id) }}>
+            <Button size="sm" variant="outline" aria-disabled={tst?.state === 'busy' || undefined} onClick={() => { if (tst?.state !== 'busy') void testProvider({ id: p.id, baseUrl: p.baseUrl, api: p.api }, p.id) }}>
               {tst?.state === 'busy' ? <Spinner /> : tst?.state === 'ok' ? <Check /> : tst?.state === 'fail' ? <X /> : <Send />}
               {t('settings:aiProviderTest')}
             </Button>
@@ -583,7 +615,7 @@ export function AIServiceCard() {
               onClick={() => {
                 setPTests(m => { const copy = { ...m }; delete copy[p.id]; return copy })
                 setProvErr('')
-                setProvForm({ id: p.id, hasKey: p.hasKey, name: p.name, baseUrl: p.baseUrl, apiKey: '', models: p.models.join(', ') })
+                setProvForm({ id: p.id, hasKey: p.hasKey, name: p.name, baseUrl: p.baseUrl, apiKey: '', api: p.api, models: p.models.map(x => x.id).join(', '), meta: Object.fromEntries(p.models.map(x => [x.id, x])) })
               }}
             >
               <Pencil />
@@ -599,7 +631,10 @@ export function AIServiceCard() {
             </Button>
           </div>
         </div>
-        <div className="mt-2 truncate font-mono text-xs text-muted-foreground" title={p.baseUrl}>{p.baseUrl}</div>
+        <div className="mt-2 flex items-center gap-2 truncate font-mono text-xs text-muted-foreground">
+          <span className="truncate" title={p.baseUrl}>{p.baseUrl}</span>
+          {p.api !== 'openai-completions' && <span className="shrink-0 rounded border px-1 font-sans" title={p.api}>{API_LABELS[p.api] ?? p.api}</span>}
+        </div>
         {tst && (
           <p role="status" className={cn('mt-1.5 break-all text-xs', tst.state === 'fail' ? 'text-destructive' : 'text-muted-foreground')}>
             {tst.state === 'busy' ? t('settings:aiProviderTestBusy') : tst.state === 'ok' ? tf('settings:aiProviderTestOk', { n: tst.models?.length ?? 0 }) : tst.err}
@@ -618,7 +653,7 @@ export function AIServiceCard() {
               </SelectTrigger>
               <SelectContent>
                 {p.models.map(m => (
-                  <SelectItem key={m} value={m} className="font-mono text-xs">{m}</SelectItem>
+                  <SelectItem key={m.id} value={m.id} className="font-mono text-xs">{m.id}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -635,20 +670,33 @@ export function AIServiceCard() {
           <div className="text-[13px] font-medium">{provForm.id ? t('settings:aiProviderEditTitle') : t('settings:aiProviderAdd')}</div>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <Input autoFocus aria-label={t('settings:aiProviderName')} placeholder={t('settings:aiProviderName')} value={provForm.name} onChange={e => setProvForm(f => (f ? { ...f, name: e.target.value } : f))} className="font-mono text-[13px]" />
-            <Input aria-label={t('settings:aiProviderUrl')} placeholder="http://host:port/v1" value={provForm.baseUrl} onChange={e => setProvForm(f => (f ? { ...f, baseUrl: e.target.value } : f))} className="font-mono text-[13px]" />
-            <Input type="password" aria-label={t('settings:aiProviderKey')} placeholder={provForm.hasKey ? t('settings:aiProviderKeyKeep') : t('settings:aiProviderKeyPh')} value={provForm.apiKey} onChange={e => setProvForm(f => (f ? { ...f, apiKey: e.target.value } : f))} className="font-mono text-[13px]" />
+            <Select value={provForm.api} onValueChange={v => { if (v) { setProvForm(f => (f ? { ...f, api: v } : f)); maybeAutoProbe({ ...provForm, api: v }) } }}>
+              <SelectTrigger size="sm" className="h-9" aria-label={t('settings:aiProviderApi')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {API_OPTIONS.map(a => (
+                  <SelectItem key={a} value={a}>{API_LABELS[a]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input aria-label={t('settings:aiProviderUrl')} placeholder="http://host:port/v1" value={provForm.baseUrl} onChange={e => setProvForm(f => (f ? { ...f, baseUrl: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="font-mono text-[13px] sm:col-span-2" />
+            <Input type="password" aria-label={t('settings:aiProviderKey')} placeholder={provForm.hasKey ? t('settings:aiProviderKeyKeep') : t('settings:aiProviderKeyPh')} value={provForm.apiKey} onChange={e => setProvForm(f => (f ? { ...f, apiKey: e.target.value } : f))} onBlur={() => maybeAutoProbe(provForm)} className="font-mono text-[13px]" />
             <Input aria-label={t('settings:aiProviderModels')} placeholder={t('settings:aiProviderModels')} value={provForm.models} onChange={e => { setProvForm(f => (f ? { ...f, models: e.target.value } : f)); setPTests(m => { const key = provForm.id ?? 'new'; if (!(key in m)) return m; const copy = { ...m }; delete copy[key]; return copy }) }} className="font-mono text-[13px]" onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void saveProvider() }} />
           </div>
-          {/* 模型 chips：手动输入常驻，测通后「填入」覆盖（网关目录是真源） */}
+          {/* 模型 chips：手动输入常驻，测通后「填入」覆盖（网关目录是真源，附带上下文上限） */}
           {provFormModels.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {provFormModels.map(m => (
-                <span key={m} className="rounded-md border bg-background px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{m}</span>
+                <span key={m} className="rounded-md border bg-background px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                  {m}
+                  {provForm.meta[m]?.contextWindow && <span className="ml-1 tabular-nums opacity-70">{fmtCtx(provForm.meta[m].contextWindow)}</span>}
+                </span>
               ))}
             </div>
           )}
           {formTest?.state === 'ok' && (formTest.models?.length ?? 0) > 0 && (
-            <Button size="sm" variant="outline" className="mt-2" onClick={() => setProvForm(f => (f ? { ...f, models: formTest.models!.join(', ') } : f))}>
+            <Button size="sm" variant="outline" className="mt-2" onClick={() => setProvForm(f => { if (!f) return f; const meta = { ...f.meta }; for (const m of formTest.models!) meta[m.id] = m; return { ...f, models: formTest.models!.map(m => m.id).join(', '), meta } })}>
               <RefreshCw />
               {tf('settings:aiProviderFillModels', { n: formTest.models!.length })}
             </Button>
@@ -659,7 +707,7 @@ export function AIServiceCard() {
               {provBusy ? <Spinner /> : <Check />}
               {t('settings:cfgSave')}
             </Button>
-            <Button size="sm" variant="outline" aria-disabled={formTest?.state === 'busy' || undefined} onClick={() => { if (formTest?.state !== 'busy') void testProvider({ id: provForm.id, baseUrl: provForm.baseUrl, apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey }, provForm.id ?? 'new') }}>
+            <Button size="sm" variant="outline" aria-disabled={formTest?.state === 'busy' || undefined} onClick={() => { if (formTest?.state !== 'busy') void testProvider({ id: provForm.id, baseUrl: provForm.baseUrl, apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey, api: provForm.api }, provForm.id ?? 'new') }}>
               {formTest?.state === 'busy' ? <Spinner /> : <Send />}
               {t('settings:aiProviderTest')}
             </Button>
@@ -671,7 +719,7 @@ export function AIServiceCard() {
         </div>
       )}
       {!provForm && (
-        <Button size="sm" variant="outline" onClick={() => { setProvErr(''); setProvForm({ name: '', baseUrl: '', apiKey: '', models: '' }) }}>
+        <Button size="sm" variant="outline" onClick={() => { setProvErr(''); setProvForm({ name: '', baseUrl: '', apiKey: '', api: 'openai-completions', models: '', meta: {} }) }}>
           <Plus />
           {t('settings:aiProviderAdd')}
         </Button>

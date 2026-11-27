@@ -10,6 +10,27 @@ const FILE = join(config.dataDir, 'config-override.json')
 /** 白名单：只有这些键可被 UI 改；端口/数据目录等一律 env-only */
 const ALLOW = new Set(['inspectIntervalMin', 'notifyWebhookUrl', 'panelBaseUrl', 'llmGatewayBase', 'llmApiKey', 'llmModel', 'llmProviders', 'llmActiveProvider'])
 
+/** API 格式白名单：与 pi models.json 的 api 枚举一致；openai-completions 覆盖 vLLM/Ollama/one-api 等兼容网关 */
+export const PROVIDER_APIS = new Set(['openai-completions', 'openai-responses', 'anthropic-messages', 'google-generative-ai'])
+
+/**
+ * 模型条目归一：string（手填）或 {id, contextWindow?, maxTokens?}（/models 自动获取带来的元数据）。
+ * 非法数值直接丢弃字段回落默认，不整条拒绝——元数据是尽力而为。
+ * @param {unknown} m @returns {{ id: string, contextWindow?: number, maxTokens?: number }}
+ */
+export function normalizeModelEntry(m) {
+  if (typeof m === 'string') return { id: m.trim() }
+  const e = /** @type {any} */ (m ?? {})
+  const id = String(e.id ?? '').trim()
+  const ctx = Number(e.contextWindow)
+  const mt = Number(e.maxTokens)
+  return {
+    id,
+    ...(Number.isFinite(ctx) && ctx >= 1024 && ctx <= 134217728 ? { contextWindow: Math.floor(ctx) } : {}),
+    ...(Number.isFinite(mt) && mt >= 1 && mt <= 8388608 ? { maxTokens: Math.floor(mt) } : {}),
+  }
+}
+
 /**
  * Provider 项校验（llmProviders 数组的单项）。
  * apiKey 三态：字符串=新值；'__KEEP__'=保留盘上同 id 旧项的 key（前端编辑时留空即此，
@@ -24,19 +45,20 @@ function validateProvider(raw, list) {
   if (!name || name.length > 40) return { ok: false, error: 'provider 名称不能为空（≤40 字符）' }
   const baseUrl = String(it.baseUrl ?? '').trim().replace(/\/+$/, '')
   if (!/^https?:\/\//.test(baseUrl)) return { ok: false, error: `provider「${name}」网关须为 http(s) 地址` }
+  const api = PROVIDER_APIS.has(String(it.api)) ? String(it.api) : 'openai-completions'
   if (!Array.isArray(it.models) || it.models.length === 0 || it.models.length > 30) return { ok: false, error: `provider「${name}」须含 1-30 个模型` }
   const models = []
   for (const m of it.models) {
-    const sv = String(m ?? '').trim()
-    if (!sv || sv.length > 120 || /[\s,;"']/.test(sv)) return { ok: false, error: `provider「${name}」模型名须为单段标识（≤120 字符，不含空格/逗号）` }
-    models.push(sv)
+    const e = normalizeModelEntry(m)
+    if (!e.id || e.id.length > 120 || /[\s,;"']/.test(e.id)) return { ok: false, error: `provider「${name}」模型名须为单段标识（≤120 字符，不含空格/逗号）` }
+    models.push(e)
   }
   const old = (Array.isArray(list) ? list : []).find(x => x && x.id === it.id)
   let apiKey = ''
   if (it.apiKey === '__KEEP__') apiKey = String(old?.apiKey ?? '')
   else if (typeof it.apiKey === 'string') apiKey = it.apiKey
   const id = /^[a-z0-9][a-z0-9-]{3,31}$/.test(String(it.id ?? '')) ? String(it.id) : cryptoRandomId()
-  return { ok: true, item: { id, name, baseUrl, apiKey, models } }
+  return { ok: true, item: { id, name, baseUrl, api, apiKey, models } }
 }
 
 /** provider id：8 位 base16，服务端生成防前端塞怪字符进 models.json 键 */

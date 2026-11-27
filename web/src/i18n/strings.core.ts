@@ -53,6 +53,7 @@ export const STRINGS_CORE: Record<string, Entry> = {
   'settings:aiModelName': { zh: '模型名', en: 'Model' },
   'settings:aiLlmKey': { zh: '模型密钥', en: 'API key' },
   'settings:aiProviderName': { zh: '名称', en: 'Name' },
+  'settings:aiProviderApi': { zh: 'API 格式', en: 'API format' },
   'settings:aiProviderUrl': { zh: '网关地址（…/v1）', en: 'Gateway URL (…/v1)' },
   'settings:aiProviderKey': { zh: '密钥', en: 'API key' },
   'settings:aiProviderKeyPh': { zh: '可留空（网关免鉴权）', en: 'optional (no auth)' },
