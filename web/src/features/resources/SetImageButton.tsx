@@ -147,10 +147,11 @@ export function SetImageDialog({
         {loading && <div className="py-4 text-[13px] text-muted-foreground">{t('res:loading')}</div>}
         {err && <div className="py-2 text-[13px] text-destructive">{err}</div>}
         {!loading && !err && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {containers.map(c => (
-              <div key={c.name} className="flex items-center gap-2">
-                <span className="w-28 shrink-0 truncate font-mono text-[13px]" title={c.name}>
+              <div key={c.name} className="space-y-2">
+                {/* 镜像地址长且要全宽核对，label 上置而非左挤 */}
+                <span className="block truncate font-mono text-[13px] text-muted-foreground" title={c.name}>
                   {c.name}
                 </span>
                 <Input
@@ -158,7 +159,7 @@ export function SetImageDialog({
                   onChange={e =>
                     setContainers(cs => cs.map(x => (x.name === c.name ? { ...x, edited: e.target.value } : x)))
                   }
-                  className="h-8 min-w-0 flex-1 font-mono text-[13px]"
+                  className="h-8 w-full font-mono text-[13px]"
                 />
               </div>
             ))}
