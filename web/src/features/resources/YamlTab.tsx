@@ -122,8 +122,8 @@ export function YamlEditor({ value, onChange, title, filename, className }: {
   className?: string
 }) {
   const t = useT()
-  // 与详情页 YAML 查看区同一套工具行（软换行/下载/复制），编辑器与展示样式一致
-  const { wrap, actions } = useCodeActions(value, filename)
+  // 与详情页 YAML 查看区同一套工具行（下载/复制）；软换行不提供——双层结构下必错位
+  const { actions } = useCodeActions(value, filename, { wrapToggle: false })
   const lines = useHighlightedCode(value, 'yaml')
   // bg 是 absolute 不撑开宽度；textarea 的 cols 决定 code 的 min-w-max →
   // pre 横向滚动条必须覆盖到最长行，两层才能一起滚到行尾
@@ -138,7 +138,6 @@ export function YamlEditor({ value, onChange, title, filename, className }: {
     onChange(e.target.value)
     // 光标移出滚动视口时跟随：向上找第一个真正滚动的祖先（tab 面板）
     const ta = taRef.current
-    if (wrap) return // 软换行下行高≠单倍 lh，跟随会漂；且换行态无横向跟随意义
     let scroller = ta?.parentElement?.parentElement ?? null
     while (scroller && scroller.scrollHeight <= scroller.clientHeight) scroller = scroller.parentElement
     if (ta && scroller) {
@@ -164,7 +163,6 @@ export function YamlEditor({ value, onChange, title, filename, className }: {
       </CodeBlockHeader>
       <CodeBlockContent
         lineNumbers
-        wrap={wrap}
         className="[&>code]:block [&>code]:relative"
       >
         {/* auto 行号列 + content-start，与预览官方 grid 完全同款：
@@ -179,10 +177,10 @@ export function YamlEditor({ value, onChange, title, filename, className }: {
           value={value}
           onChange={handleChange}
           rows={Math.max(1, value.split('\n').length)}
-          cols={wrap ? 20 : Math.max(20, maxLine + 1)}
+          cols={Math.max(20, maxLine + 1)}
           onCompositionStart={() => setComposing(true)}
           onCompositionEnd={() => setComposing(false)}
-          wrap={wrap ? 'soft' : 'off'}
+          wrap="off"
           spellCheck={false}
           aria-label={t('res:editingHint')}
           style={{ paddingLeft: `calc(${numDigits}ch + 12px)` }}
