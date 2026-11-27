@@ -11,6 +11,7 @@ import { ClusterSettingsCard } from '@/features/settings/ClusterSettingsCard'
 import { LANGS, tf, useLang, useT } from '@/i18n'
 import themesMeta from '@tokens/json/themes.json'
 import { THEME_OPTIONS, hexLuminance, reapplyTheme, useTheme, type ThemeId } from '@/hooks/useTheme'
+import { cssVarHex } from '@/lib/color'
 import { cn } from '@/lib/utils'
 import { WEB_VERSION } from '@/lib/version'
 import { useEffect, useRef, useState, type RefObject } from 'react'
@@ -115,11 +116,13 @@ function ColorField({ label, hint, className, presets, value, onPick, preview, d
   disabled?: boolean
 }) {
   const t = useT()
+  const { id: themeId } = useTheme()
   const ref = useRef<HTMLInputElement>(null)
-  useColorChannel(ref, preview, v => onPick(v), () => value ?? '#0090ff')
+  // 未覆盖时取色器底色=当前主题 primary（曾写死 #0090ff，彩色主题下错蓝）
+  useColorChannel(ref, preview, v => onPick(v), () => value ?? cssVarHex('--primary', '#0090ff'))
   useEffect(() => {
-    if (ref.current && value) ref.current.value = value
-  }, [value])
+    if (ref.current) ref.current.value = value || cssVarHex('--primary', '#0090ff')
+  }, [value, themeId])
   return (
     <SettingTile
       // 禁用不降整块透明度：色块瓦的职责就是显示颜色，压半后屏上色≠切换后的真色；
@@ -151,7 +154,7 @@ function ColorField({ label, hint, className, presets, value, onPick, preview, d
           <input
             ref={ref}
             type="color"
-            defaultValue="#0090ff"
+            defaultValue={cssVarHex('--primary', '#0090ff')}
             aria-label={label}
             title={label}
             disabled={disabled}

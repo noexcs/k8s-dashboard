@@ -34,11 +34,12 @@ export interface CustomAppearance {
 
 // 阴影「轻」档：单层细投影覆盖主题阴影族（none 直接归零；未设置交还主题取值）
 const SHADOW_SOFT: Record<string, string> = {
-  xs: '0 1px 1px rgba(15,23,42,.04)',
-  sm: '0 1px 2px rgba(15,23,42,.05)',
-  md: '0 2px 4px rgba(15,23,42,.06)',
-  lg: '0 4px 10px rgba(15,23,42,.07)',
-  xl: '0 10px 24px rgba(15,23,42,.08)',
+  // 柔和档阴影基色跟主题墨色（内置档走 token，此覆盖档曾经写死蓝黑 rgba(15,23,42)）
+  xs: '0 1px 1px color-mix(in oklab, var(--foreground) 4%, transparent)',
+  sm: '0 1px 2px color-mix(in oklab, var(--foreground) 5%, transparent)',
+  md: '0 2px 4px color-mix(in oklab, var(--foreground) 6%, transparent)',
+  lg: '0 4px 10px color-mix(in oklab, var(--foreground) 7%, transparent)',
+  xl: '0 10px 24px color-mix(in oklab, var(--foreground) 8%, transparent)',
 }
 const num = (v: unknown, lo: number, hi: number): number | undefined =>
   typeof v === 'number' && v >= lo && v <= hi ? v : undefined

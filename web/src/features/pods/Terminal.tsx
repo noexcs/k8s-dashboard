@@ -11,22 +11,18 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { tf, useT } from '@/i18n'
+import { cssVarHex } from '@/lib/color'
 
-// xterm 不支持 CSS 变量，按主题档位给具体色值；容器背景与 pane 背景同值（见下）
-const TERM_THEME = {
-  background: '#0b0f14',
-  foreground: '#d6dde6',
-  cursor: '#7aa2f7',
-  cursorAccent: '#0b0f14',
-  selectionBackground: '#2a3950',
-}
-const TERM_THEME_LIGHT = {
-  background: '#f5f5f6',
-  foreground: '#26262b',
-  cursor: '#3b6fd4',
-  cursorAccent: '#f5f5f6',
-  selectionBackground: '#d5e3f8',
-}
+// xterm 不支持 CSS 变量：读当前主题 token 的解析值喂 #rrggbb（明暗、配色主题、
+// 自定义色全走 --background/--foreground 一条链，切主题自动跟）；
+// cursor/selection 是终端操作色板，跟 cursor 一起走主题 primary 归一化
+const termTheme = () => ({
+  background: cssVarHex('--background', '#f5f5f6'),
+  foreground: cssVarHex('--foreground', '#26262b'),
+  cursor: cssVarHex('--primary', '#3b6fd4'),
+  cursorAccent: cssVarHex('--background', '#f5f5f6'),
+  selectionBackground: cssVarHex('--accent', '#d5e3f8'),
+})
 
 type TermStatus = 'connecting' | 'running' | 'exited' | 'failed'
 
@@ -69,7 +65,7 @@ export function TerminalView(props: {
 }) {
   const { cluster, ns, pod, containers } = props
   const t = useT()
-  const { resolved } = useTheme()
+  const { resolved, id: themeId, custom } = useTheme()
   const dark = resolved === 'dark'
   const [container, setContainer] = useState(props.initial ?? containers[0] ?? '')
   const [command, setCommand] = useState<string[]>(props.initialCommand ?? ['sh'])
@@ -97,7 +93,7 @@ export function TerminalView(props: {
       fontSize: 12.5,
       // 与 --font-mono 同栈（xterm 不吃 var()，此处同步字面量）：同页两种等宽人格=拼装感
       fontFamily: "'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace",
-      theme: dark ? TERM_THEME : TERM_THEME_LIGHT,
+      theme: termTheme(),
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
@@ -160,10 +156,11 @@ export function TerminalView(props: {
     }
   }, [cluster, ns, pod, container, command, session])
 
-  // 主题切换时同步 xterm 配色（pane 已创建，重建会丢会话状态）
+  // 主题切换时同步 xterm 配色（pane 已创建，重建会丢会话状态）；
+  // 明暗、配色主题 id、自定义色覆盖三类变更都要重读 token
   useEffect(() => {
-    if (termRef.current) termRef.current.options.theme = dark ? TERM_THEME : TERM_THEME_LIGHT
-  }, [dark])
+    if (termRef.current) termRef.current.options.theme = termTheme()
+  }, [dark, themeId, custom])
 
   const busy = state.status === 'connecting' || state.status === 'running'
 
@@ -235,8 +232,8 @@ export function TerminalView(props: {
       </div>
       <div
         className={cn(
-          'min-h-0 flex-1 overflow-hidden rounded-md border',
-          dark ? 'bg-[#0b0f14]' : 'bg-[#f5f5f6]',
+          // 容器背景与 pane 背景同值：都吃 --background，切主题不留灰白色框
+          'min-h-0 flex-1 overflow-hidden rounded-md border bg-background',
         )}
       >
         <div ref={hostRef} className="h-full p-1" />
