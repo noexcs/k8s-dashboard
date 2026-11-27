@@ -707,7 +707,8 @@ export function AIServiceCard() {
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <Input autoFocus aria-label={t('settings:aiProviderName')} placeholder={t('settings:aiProviderName')} value={provForm.name} onChange={e => setProvForm(f => (f ? { ...f, name: e.target.value } : f))} className="font-mono text-[13px]" />
             <Select value={provForm.api} onValueChange={v => { if (v) { setProvForm(f => (f ? { ...f, api: v } : f)); maybeAutoProbe({ ...provForm, api: v }) } }}>
-              <SelectTrigger size="sm" className="h-9" aria-label={t('settings:aiProviderApi')}>
+              {/* w-full:SelectTrigger 默认 w-fit(内容宽),与整格 Input 并排会显小;对齐后同高同宽同圆角 */}
+              <SelectTrigger className="w-full text-[13px]" aria-label={t('settings:aiProviderApi')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
