@@ -251,13 +251,20 @@ export function AIServiceCard() {
       // 表单态测通且列表还是空的（新建/刚清完）：目录结果直接落列表，一步到位
       if (d.ok && (d.models?.length ?? 0) > 0 && provForm && slot === (provForm.id ?? 'new') && provForm.models.length === 0) {
         const filled = d.models!
-        setProvForm(f => (f && f.models.length === 0 ? { ...f, models: filled } : f))
+        const filledBaseUrl = arg.baseUrl.trim()
+        setProvForm(f => (f && f.models.length === 0 ? { ...f, models: filled, name: f.name.trim() || suggestName(filledBaseUrl, filled) } : f))
       }
       return d
     } catch (e) {
       setPTests(m => ({ ...m, [slot]: { state: 'fail', err: e instanceof Error ? e.message.slice(0, 100) : '' } }))
       return null
     }
+  }
+  // 名称留空时从网关推断可读名（服务端限 40 字符）：单模型用模型名，多模型/无模型用 host:port
+  const suggestName = (baseUrl: string, models: ProvModel[]) => {
+    let host = ''
+    try { host = new URL(baseUrl).host } catch { /* 非法地址走模型名 */ }
+    return ((models.length === 1 && models[0].id ? models[0].id : host) || 'provider').slice(0, 40)
   }
   // 「获取模型」按钮：测网关并直接替换列表（用户明确点了就覆盖，这正是按钮语义）
   const fetchModels = async () => {
@@ -273,7 +280,7 @@ export function AIServiceCard() {
       const prev = new Map(f.models.map(m => [m.id, m]))
       // 网关为准；但目录没报 ctx 时保留同 id 旧条目的元数据（此前获取/手填的信息不丢）
       const merged = d.models.map(nm => ({ ...nm, contextWindow: nm.contextWindow ?? prev.get(nm.id)?.contextWindow, maxTokens: nm.maxTokens ?? prev.get(nm.id)?.maxTokens }))
-      setProvForm(q => (q ? { ...q, models: merged } : q))
+      setProvForm(q => (q ? { ...q, models: merged, name: q.name.trim() || suggestName(baseUrl, merged) } : q))
     }
   }
   // 手输添加：与服务端同规则（单段标识，无空格/逗号/引号）
@@ -303,12 +310,23 @@ export function AIServiceCard() {
     probeSigRef.current = sig
     void testProvider({ id: f.id, baseUrl, api: f.api, apiKey: f.apiKey === '' && f.hasKey ? '__KEEP__' : f.apiKey }, f.id ?? 'new')
   }
+  // 整表替换语义下,基于页面加载时的旧缓存写回会吞掉期间别的页面/操作加的条目
+  // （实锤:测试时一条新加 provider 被 stale 表单的保存覆盖丢失）——写前先拉最新
+  const listItems = async (): Promise<ProviderItem[]> => {
+    try {
+      const d = (await (await fetch('/ai/config')).json()) as { llmProviders?: { items: ProviderItem[] } }
+      return d.llmProviders?.items ?? provs?.items ?? []
+    } catch {
+      return provs?.items ?? []
+    }
+  }
   const saveProvider = async () => {
     if (!provForm || provBusy) return
-    const name = provForm.name.trim()
     const baseUrl = provForm.baseUrl.trim()
     const models = provForm.models
-    if (!name || !/^https?:\/\/.+/i.test(baseUrl) || models.length === 0) {
+    // 名称非必填：留空时自动按模型名/网关 host 起名（获取模型成功时已预填，这里是手清空后的兜底）
+    const name = provForm.name.trim() || suggestName(baseUrl, models)
+    if (!/^https?:\/\/.+/i.test(baseUrl) || models.length === 0) {
       setProvErr(t('settings:aiProviderFormIncomplete'))
       return
     }
@@ -325,7 +343,7 @@ export function AIServiceCard() {
         apiKey: provForm.apiKey === '' && provForm.hasKey ? '__KEEP__' : provForm.apiKey,
         ...(provForm.id ? { id: provForm.id } : {}),
       }
-      const cur = provs?.items ?? []
+      const cur = await listItems()
       const at = provForm.id ? cur.findIndex(x => x.id === provForm.id) : -1
       const items = at >= 0 ? [...cur.slice(0, at), item, ...cur.slice(at + 1)] : [...cur, item]
       const err = await putConfig({ llmProviders: items })
@@ -344,7 +362,7 @@ export function AIServiceCard() {
     setProvBusy(true)
     setConfirmDel('')
     try {
-      const rest = (provs?.items ?? []).filter(x => x.id !== id)
+      const rest = (await listItems()).filter(x => x.id !== id)
       const err = await putConfig({ llmProviders: rest.length ? rest : null })
       if (err) setProvErr(err)
       else afterProvChange()

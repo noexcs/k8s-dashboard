@@ -77,7 +77,7 @@ export const STRINGS_CORE: Record<string, Entry> = {
   'settings:aiProviderDelConfirm': { zh: '确认删除', en: 'Confirm delete' },
   'settings:aiProviderDefaultModel': { zh: '默认模型', en: 'Default model' },
   'settings:aiProviderActiveAria': { zh: '默认使用 {name}', en: 'Use {name} by default' },
-  'settings:aiProviderFormIncomplete': { zh: '需填写名称、http(s) 网关与至少 1 个模型', en: 'name, http(s) URL and ≥1 model required' },
+  'settings:aiProviderFormIncomplete': { zh: '需填写 http(s) 网关与至少 1 个模型（名称留空自动取模型名）', en: 'http(s) URL and ≥1 model required (name auto-fills from the model if blank)' },
   'settings:aiProviderEnvNote': { zh: '接入由 Provider 列表接管，env 为兜底底座', en: 'providers take over; env is fallback' },
   'settings:aiLlmKeySet': { zh: '已设置（不回显）', en: 'set (never shown)' },
   'settings:aiLlmKeyUnset': { zh: '未设置', en: 'not set' },
