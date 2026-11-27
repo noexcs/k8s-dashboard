@@ -8,7 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-playground/validator/v10 v10.30.6
 	github.com/gobwas/glob v0.2.3
-	github.com/gofrs/flock v0.13.1
+	github.com/gofrs/flock v0.13.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
@@ -17,11 +17,11 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	helm.sh/helm/v3 v3.22.1
 	k8s.io/api v0.37.2
 	k8s.io/apimachinery v0.37.2
-	k8s.io/cli-runtime v0.37.1
+	k8s.io/cli-runtime v0.37.2
 	k8s.io/client-go v0.37.2
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
 	k8s.io/kubectl v0.37.1 // indirect
@@ -49,8 +49,8 @@ require (
 	golang.org/x/term v0.48.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/streaming v0.37.2
-	sigs.k8s.io/cluster-inventory-api v0.1.3
+	k8s.io/streaming v0.37.3
+	sigs.k8s.io/cluster-inventory-api v0.2.0
 )
 
 require (
